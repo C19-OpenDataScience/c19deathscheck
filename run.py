@@ -20,20 +20,17 @@ DATE_RANGES = {
 
 DATA_FILES_CONFS = [
     {
-        "src": "https://www.data.gouv.fr/fr/datasets/r/fd61ff96-1e4e-450f-8648-3e3016edbe34",
-        "type": "deces",
-        "name": "deces-2017.txt"
+        "src": "https://static.data.gouv.fr/resources/fichier-des-personnes-decedees/20191209-192304/deces-2017.txt",
+        "type": "deces"
     },
     {
-        "src": "https://www.data.gouv.fr/fr/datasets/r/a1f09595-0e79-4300-be1a-c97964e55f05",
-        "type": "deces",
-        "name": "deces-2020.txt"
+        "src": "https://static.data.gouv.fr/resources/fichier-des-personnes-decedees/20210112-143457/deces-2020.txt",
+        "type": "deces"
     },
     {
         "src": "https://www.insee.fr/fr/statistiques/fichier/1913143/pyramide-des-ages-2017.xls",
         "type": "pyramide-des-ages",
         "annee": 2017,
-        "name": "pyramide-des-ages-2017.xls",
         "cols": {
             "age": 2,
             "nb": 5
@@ -44,7 +41,6 @@ DATA_FILES_CONFS = [
         "src": "https://www.insee.fr/fr/statistiques/fichier/1913143/pyramide-des-ages-2020.xls",
         "type": "pyramide-des-ages",
         "annee": 2020,
-        "name": "pyramide-des-ages-2020.xls",
         "cols": {
             "age": 2,
             "nb": 5
@@ -52,6 +48,10 @@ DATA_FILES_CONFS = [
         "rows": (7, 107)
     },
 ]
+
+
+def _get_conf_fname(conf):
+    return conf.get("name") or os.path.basename(conf["src"])
 
 
 @click.group()
@@ -102,10 +102,11 @@ def _download_data():
 
 
 def _download_data_file(conf):
-    path = os.path.join(HERE, "data", conf["name"])
-    if not os.path.exists(path):
-        print(f'Download {conf["name"]}... ', end='')
-        urllib.request.urlretrieve(conf["src"], path)
+    fname = _get_conf_fname(conf)
+    fpath = os.path.join(HERE, "data", fname)
+    if not os.path.exists(fpath):
+        print(f'Download {fname}... ', end='')
+        urllib.request.urlretrieve(conf["src"], fpath)
         print(f'DONE')
 
 
@@ -117,7 +118,7 @@ def import_data_cmd():
 def _import_data():
     with _db_connect() as conn:
         for conf in DATA_FILES_CONFS:
-            print(f"import {conf['name']}")
+            print(f"import {_get_conf_fname(conf)}")
             if conf["type"] == "deces":
                 datas = _parse_deces_file(conf)
                 _insert_deces_in_db(conn, datas)
@@ -129,7 +130,8 @@ def _import_data():
 
 
 def _parse_deces_file(conf):
-    path = os.path.join(HERE, "data", conf["name"])
+    fname = _get_conf_fname(conf)
+    path = os.path.join(HERE, "data", fname)
     with open(path) as file:
         res, errors = [], []
         num_line = 1
@@ -153,7 +155,7 @@ def _parse_deces_file(conf):
                 if isinstance(exc, ParseError):
                     errors.append(exc)
             num_line += 1
-        print(f"Nb errors for {conf['name']}: {len(errors)} / {num_line-1} ({'{:.5f}'.format(100*len(errors)/(num_line-1))}%)")
+        print(f"Nb errors for {fname}: {len(errors)} / {num_line-1} ({'{:.5f}'.format(100*len(errors)/(num_line-1))}%)")
         for e in errors[:10]: print(e)
         return res
 
@@ -165,7 +167,8 @@ def _insert_deces_in_db(conn, rows):
 
 
 def _parse_pda_file(conf):
-    path = os.path.join(HERE, "data", conf["name"])
+    fname = _get_conf_fname(conf)
+    path = os.path.join(HERE, "data", fname)
     book = xlrd.open_workbook(path)
     sheet = book.sheet_by_index(0)
     res = []
