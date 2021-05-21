@@ -120,20 +120,16 @@ def _import_data():
         for conf in DATA_FILES_CONFS:
             print(f"import {_get_conf_fname(conf)}")
             if conf["type"] == "deces":
-                datas = _parse_deces_file(conf)
-                _insert_deces_in_db(conn, datas)
+                _import_deces_file(conn, conf)
             if conf["type"] == "pyramide-des-ages":
-                datas = _parse_pda_file(conf)
-                _insert_ages_in_db(conn, datas)
+                _import_pda_file(conn, conf)
 
 
-
-
-def _parse_deces_file(conf):
+def _import_deces_file(conn, conf):
     fname = _get_conf_fname(conf)
     path = os.path.join(HERE, "data", fname)
     with open(path) as file:
-        res, errors = [], []
+        rows, errors = [], []
         num_line = 1
         nb_inserted = 0
         for line in file.readlines():
@@ -149,7 +145,7 @@ def _parse_deces_file(conf):
                     "date_deces": date_deces,
                     "age": age
                 }
-                res.append(parsed)
+                rows.append(parsed)
                 nb_inserted += 1
             except ParseError as exc:
                 if isinstance(exc, ParseError):
@@ -157,21 +153,15 @@ def _parse_deces_file(conf):
             num_line += 1
         print(f"Nb errors for {fname}: {len(errors)} / {num_line-1} ({'{:.5f}'.format(100*len(errors)/(num_line-1))}%)")
         for e in errors[:10]: print(e)
-        return res
+    _db_bulk_insert(conn, "deces", rows)
 
 
-def _insert_deces_in_db(conn, rows):
-    cur = conn.cursor()
-    cur.executemany('''INSERT INTO deces (sex, date_naissance, date_deces, age) VALUES (?, ?, ?, ?)''',
-        [(row["sex"], row["date_naissance"], row["date_deces"], row["age"]) for row in rows])
-
-
-def _parse_pda_file(conf):
+def _import_pda_file(conn, conf):
     fname = _get_conf_fname(conf)
     path = os.path.join(HERE, "data", fname)
     book = xlrd.open_workbook(path)
     sheet = book.sheet_by_index(0)
-    res = []
+    rows = []
     # loop on rows
     # (with xlrd rows and columns start with 0)
     first_row, last_row = conf["rows"]
@@ -190,18 +180,12 @@ def _parse_pda_file(conf):
         nb = sheet.cell(i, nb_col-1).value
         assert nb != ''
         nb = int(nb)
-        res.append({
+        rows.append({
             "annee": conf["annee"],
             "age": age,
             "nb": nb
         })
-    return res
-
-
-def _insert_ages_in_db(conn, rows):
-    cur = conn.cursor()
-    cur.executemany('''INSERT INTO ages (annee, age, nb) VALUES (?, ?, ?)''',
-        [(row["annee"], row["age"], row["nb"]) for row in rows])
+    _db_bulk_insert(conn, "ages", rows)
 
 
 @main.command("compute_taux_mortalite_par_age")
@@ -384,6 +368,13 @@ def _to_dt(date):
 
 def _dt_to_annees(dt):
     return int(dt.days / 365.25)
+
+def _db_bulk_insert(conn, table_name, values):
+    if len(values) == 0:
+        return
+    conn.cursor().executemany(
+        f"INSERT INTO {table_name} ({','.join(values[0].keys())}) VALUES ({','.join('?' for _ in range(len(values[0])))})",
+        [list(v.values()) for v in values])
 
 if __name__ == "__main__":
     main()
