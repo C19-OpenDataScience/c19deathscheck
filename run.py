@@ -13,20 +13,21 @@ import matplotlib.pyplot as plt
 
 HERE = os.path.dirname(__file__)
 
-DATE_RANGES = {
-    "grippe 2016/2017": ("2017-01-01", "2017-02-01"),
-    "covid 2019/2020": ("2020-03-20", "2020-04-20")
-}
+def _get_date_ranges():
+    return _get_peak_date_ranges()
+
+def _get_peak_date_ranges():
+    return [
+        {"name":"Grippe (de 2017-01-01 à 2017-02-01)", "year":2017, "range":("2017-01-01", "2017-02-01")},
+        {"name":"Covid19 (de 2020-03-20 à 2020-04-20)", "year":2020, "range":("2020-03-20", "2020-04-20")},
+    ]
+
+DECES_FILES_SRC = [
+    "https://static.data.gouv.fr/resources/fichier-des-personnes-decedees/20191209-192304/deces-2017.txt",
+    "https://static.data.gouv.fr/resources/fichier-des-personnes-decedees/20210112-143457/deces-2020.txt"
+]
 
 DATA_FILES_CONFS = [
-    {
-        "src": "https://static.data.gouv.fr/resources/fichier-des-personnes-decedees/20191209-192304/deces-2017.txt",
-        "type": "deces"
-    },
-    {
-        "src": "https://static.data.gouv.fr/resources/fichier-des-personnes-decedees/20210112-143457/deces-2020.txt",
-        "type": "deces"
-    },
     {
         "src": "https://www.insee.fr/fr/statistiques/fichier/1913143/pyramide-des-ages-2017.xls",
         "type": "pyramide-des-ages",
@@ -47,7 +48,10 @@ DATA_FILES_CONFS = [
         },
         "rows": (7, 107)
     },
-]
+] + [{
+    "type": "deces",
+    "src": src
+} for src in DECES_FILES_SRC]
 
 
 def _get_conf_fname(conf):
@@ -106,6 +110,7 @@ def _download_data_file(conf):
     fpath = os.path.join(HERE, "data", fname)
     if not os.path.exists(fpath):
         print(f'Download {fname}... ', end='')
+        sys.stdout.flush()
         urllib.request.urlretrieve(conf["src"], fpath)
         print(f'DONE')
 
@@ -196,22 +201,18 @@ def compute_taux_mortalite_par_age():
 def _compute_taux_mortalite_par_age():
     print(f"compute taux_mortalite_par_age")
     _assert_all_date_ranges_have_same_duration()
+    plt.clf()
+    plt.title("Taux de mortalité par âge")
     with _db_connect() as conn:
         age_range = list(range(1, 101))
-        plt.clf()
-        plt.title("Taux de mortalité par âge")
-        def _compute_taux_mortalite_par_age(deces, pop):
+        for dr in _get_date_ranges():
+            pop_par_age = _select_pop_par_age(conn, dr["year"])
+            nb_deces_par_age = _select_deces_par_age(conn, dr["range"])
             _div = lambda a, b: a/b if b else 0
-            return {age: _div(nb, pop.get(age)) for age, nb in deces.items()}
-        def _plot(title, date_range, annee):
-            pop_par_age = _select_pop_par_age(conn, annee)
-            nb_deces_par_age = _select_deces_par_age(conn, date_range)
-            taux_mortalite_par_age = _compute_taux_mortalite_par_age(nb_deces_par_age, pop_par_age)
-            plt.plot(age_range, [taux_mortalite_par_age.get(i, 0) for i in age_range], label=f"{title} (de {date_range[0]} à {date_range[1]})")
-        _plot("Grippe", DATE_RANGES["grippe 2016/2017"], 2017)
-        _plot("Covid19", DATE_RANGES["covid 2019/2020"], 2020)
-        plt.legend()
-        plt.savefig(os.path.join(HERE, 'results/taux_mortalite_par_age.png'))
+            taux_mortalite_par_age = {age: _div(nb, pop_par_age.get(age)) for age, nb in nb_deces_par_age.items()}
+            plt.plot(age_range, [taux_mortalite_par_age.get(i, 0) for i in age_range], label=dr["name"])
+    plt.legend()
+    plt.savefig(os.path.join(HERE, 'results/taux_mortalite_par_age.png'))
 
 
 def _select_pop_par_age(conn, annee):
@@ -238,19 +239,15 @@ def compute_deces_par_date():
 def _compute_deces_par_date():
     print(f"compute deces_par_date")
     _assert_all_date_ranges_have_same_duration()
+    plt.clf()
+    plt.title("Décès par date")
     with _db_connect() as conn:
-        date_range_2017 = DATE_RANGES["grippe 2016/2017"]
-        date_range_2020 = DATE_RANGES["covid 2019/2020"]
-        deces_par_date_2017 = _select_deces_par_date(conn, date_range_2017)
-        deces_par_date_2020 = _select_deces_par_date(conn, date_range_2020)
-        dates_2017 = _date_range_to_dates(date_range_2017)
-        dates_2020 = _date_range_to_dates(date_range_2020)
-        plt.clf()
-        plt.plot(range(len(dates_2017)), [deces_par_date_2017.get(d, 0) for d in dates_2017], label=f"Grippe (de {date_range_2017[0]} à {date_range_2017[1]})")
-        plt.plot(range(len(dates_2020)), [deces_par_date_2020.get(d, 0) for d in dates_2020], label=f"Covid19 (de {date_range_2020[0]} à {date_range_2020[1]})")
-        plt.title("Décès par date")
-        plt.legend()
-        plt.savefig(os.path.join(HERE, 'results/deces_par_date.png'))
+        for dr in _get_date_ranges():
+            deces_par_date = _select_deces_par_date(conn, dr["range"])
+            dates = _date_range_to_dates(dr["range"])
+            plt.plot(range(len(dates)), [deces_par_date.get(d, 0) for d in dates], label=dr["name"])
+    plt.legend()
+    plt.savefig(os.path.join(HERE, 'results/deces_par_date.png'))
 
 
 def _select_deces_par_date(conn, date_range):
@@ -269,17 +266,15 @@ def compute_population_par_age():
 def _compute_population_par_age():
     print(f"compute population_par_age")
     _assert_all_date_ranges_have_same_duration()
+    plt.clf()
+    plt.title("Population par âge")
+    age_range = list(range(1, 101))
     with _db_connect() as conn:
-        plt.clf()
-        plt.title("Population par âge")
-        age_range = list(range(1, 101))
-        def _plot(annee):
-            pop_par_age = _select_pop_par_age(conn, annee)
-            plt.plot(age_range, [pop_par_age.get(i, 0) for i in age_range], label=annee)
-        _plot(2017)
-        _plot(2020)
-        plt.legend()
-        plt.savefig(os.path.join(HERE, 'results/population_par_age.png'))
+        for dr in _get_date_ranges():
+            pop_par_age = _select_pop_par_age(conn, dr["year"])
+            plt.plot(age_range, [pop_par_age.get(i, 0) for i in age_range], label=dr["year"])
+    plt.legend()
+    plt.savefig(os.path.join(HERE, 'results/population_par_age.png'))
 
 
 @main.command("compute_deces_par_age")
@@ -290,17 +285,15 @@ def compute_deces_par_age():
 def _compute_deces_par_age():
     print("compute deces_par_age")
     _assert_all_date_ranges_have_same_duration()
+    plt.clf()
+    plt.title("Décès par âge")
+    age_range = list(range(1, 101))
     with _db_connect() as conn:
-        age_range = list(range(1, 101))
-        plt.clf()
-        plt.title("Décès par âge")
-        def _plot(title, date_range):
-            nb_deces_par_age = _select_deces_par_age(conn, date_range)
-            plt.plot(age_range, [nb_deces_par_age.get(i, 0) for i in age_range], label=f"{title} (de {date_range[0]} à {date_range[1]})")
-        _plot("Grippe", DATE_RANGES["grippe 2016/2017"])
-        _plot("Covid19", DATE_RANGES["covid 2019/2020"])
-        plt.legend()
-        plt.savefig(os.path.join(HERE, 'results/deces_par_age.png'))
+        for dr in _get_date_ranges():
+            nb_deces_par_age = _select_deces_par_age(conn, dr["range"])
+            plt.plot(age_range, [nb_deces_par_age.get(i, 0) for i in age_range], label=dr["name"])
+    plt.legend()
+    plt.savefig(os.path.join(HERE, 'results/deces_par_age.png'))
 
 
 # parsing
@@ -343,7 +336,8 @@ def _parse_date(val, def_month=None, def_day=None):
 
 def _assert_all_date_ranges_have_same_duration():
     duration = None
-    for _key, (start_date, end_date) in DATE_RANGES.items():
+    for dr in _get_date_ranges():
+        start_date, end_date = dr["range"]
         dur = _to_dt(end_date) - _to_dt(start_date)
         if duration is None:
             duration = dur
@@ -368,6 +362,11 @@ def _to_dt(date):
 
 def _dt_to_annees(dt):
     return int(dt.days / 365.25)
+
+def _add_days(date, days):
+    dt = _to_dt(date)
+    dt += datetime.delta(days=days)
+    return dt.stftime('%Y-%m-%d')
 
 def _db_bulk_insert(conn, table_name, values):
     if len(values) == 0:
