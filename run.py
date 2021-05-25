@@ -10,6 +10,7 @@ from collections import defaultdict
 from glob import glob
 import xlrd
 import matplotlib.pyplot as plt
+import chardet
 
 HERE = os.path.dirname(__file__)
 
@@ -22,32 +23,54 @@ def _get_peak_date_ranges():
         {"name":"Covid19 (de 2020-03-20 à 2020-04-20)", "year":2020, "range":("2020-03-20", "2020-04-20")},
     ]
 
+def _get_years_date_ranges():
+    return [
+        {
+            "name": str(year),
+            "year": year,
+            "range": (f"{year}-01-01", _add_days(f"{year}-01-01", 365))
+        }
+        for year in range(2000, 2020+1)
+    ]
+
 DECES_FILES_SRC = [
+    "https://static.data.gouv.fr/resources/fichier-des-personnes-decedees/20191209-190504/deces-2000.txt",
+    "https://static.data.gouv.fr/resources/fichier-des-personnes-decedees/20191209-190558/deces-2001.txt",
+    "https://static.data.gouv.fr/resources/fichier-des-personnes-decedees/20191209-190702/deces-2002.txt",
+    "https://static.data.gouv.fr/resources/fichier-des-personnes-decedees/20191209-190755/deces-2003.txt",
+    "https://static.data.gouv.fr/resources/fichier-des-personnes-decedees/20191209-190852/deces-2004.txt",
+    "https://static.data.gouv.fr/resources/fichier-des-personnes-decedees/20191209-190939/deces-2005.txt",
+    "https://static.data.gouv.fr/resources/fichier-des-personnes-decedees/20191209-191027/deces-2006.txt",
+    "https://static.data.gouv.fr/resources/fichier-des-personnes-decedees/20191209-191117/deces-2007.txt",
+    "https://static.data.gouv.fr/resources/fichier-des-personnes-decedees/20191209-191225/deces-2008.txt",
+    "https://static.data.gouv.fr/resources/fichier-des-personnes-decedees/20191209-191359/deces-2009.txt",
+    "https://static.data.gouv.fr/resources/fichier-des-personnes-decedees/20191209-191659/deces-2010.txt",
+    "https://static.data.gouv.fr/resources/fichier-des-personnes-decedees/20191209-191938/deces-2013.txt",
+    "https://static.data.gouv.fr/resources/fichier-des-personnes-decedees/20191209-192022/deces-2014.txt",
+    "https://static.data.gouv.fr/resources/fichier-des-personnes-decedees/20191209-192119/deces-2015.txt",
+    "https://static.data.gouv.fr/resources/fichier-des-personnes-decedees/20191209-192203/deces-2016.txt",
     "https://static.data.gouv.fr/resources/fichier-des-personnes-decedees/20191209-192304/deces-2017.txt",
+    "https://static.data.gouv.fr/resources/fichier-des-personnes-decedees/20191205-191652/deces-2018.txt",
+    "https://static.data.gouv.fr/resources/fichier-des-personnes-decedees/20200113-173945/deces-2019.txt",
     "https://static.data.gouv.fr/resources/fichier-des-personnes-decedees/20210112-143457/deces-2020.txt"
 ]
 
 DATA_FILES_CONFS = [
     {
-        "src": "https://www.insee.fr/fr/statistiques/fichier/1913143/pyramide-des-ages-2017.xls",
         "type": "pyramide-des-ages",
-        "annee": 2017,
-        "cols": {
-            "age": 2,
-            "nb": 5
+        "src": "https://www.insee.fr/fr/statistiques/pyramide/3312958/xls/pyramides-des-ages_bilan-demo_2019.xls",
+        "sheet": "France métropolitaine",
+        "rows": {
+            "annee": 9,
+            "hommes_debut": 11,
+            "hommes_fin": 116,
+            "femmes_debut": 120,
+            "femmes_fin": 225
         },
-        "rows": (7, 107)
-    },
-    {
-        "src": "https://www.insee.fr/fr/statistiques/fichier/1913143/pyramide-des-ages-2020.xls",
-        "type": "pyramide-des-ages",
-        "annee": 2020,
-        "cols": {
-            "age": 2,
-            "nb": 5
-        },
-        "rows": (7, 107)
-    },
+        "cols":{
+            "age": 2
+        }
+    }
 ] + [{
     "type": "deces",
     "src": src
@@ -133,28 +156,30 @@ def _import_data():
 def _import_deces_file(conn, conf):
     fname = _get_conf_fname(conf)
     path = os.path.join(HERE, "data", fname)
-    with open(path) as file:
+    with open(path, 'rb') as file:
         rows, errors = [], []
         num_line = 1
         nb_inserted = 0
         for line in file.readlines():
             try:
-                date_naissance = _parse_date(line[81:89], def_month="06", def_day="15")
-                date_deces = _parse_date(line[154:162])
+                date_naissance = _parse_date(line[81:89].decode("utf-8"), def_month="06", def_day="15")
+                date_deces = _parse_date(line[154:162].decode("utf-8"))
                 naissance_dt = _to_dt(date_naissance)
                 deces_dt = _to_dt(date_deces)
                 age = _dt_to_annees(deces_dt - naissance_dt)
                 parsed = {
-                    "sex": _parse_sex(line[80]),
+                    "sex": _parse_sex(line[80:81].decode("utf-8")),
                     "date_naissance": date_naissance,
                     "date_deces": date_deces,
                     "age": age
                 }
                 rows.append(parsed)
                 nb_inserted += 1
-            except ParseError as exc:
-                if isinstance(exc, ParseError):
+            except Exception as exc:
+                if isinstance(exc, ParseError) or isinstance(exc, ValueError):
                     errors.append(exc)
+                else:
+                    raise()
             num_line += 1
         print(f"Nb errors for {fname}: {len(errors)} / {num_line-1} ({'{:.5f}'.format(100*len(errors)/(num_line-1))}%)")
         for e in errors[:10]: print(e)
@@ -165,31 +190,48 @@ def _import_pda_file(conn, conf):
     fname = _get_conf_fname(conf)
     path = os.path.join(HERE, "data", fname)
     book = xlrd.open_workbook(path)
-    sheet = book.sheet_by_index(0)
+    sheet = book.sheet_by_name(conf["sheet"])
     rows = []
     # loop on rows
     # (with xlrd rows and columns start with 0)
-    first_row, last_row = conf["rows"]
-    age_col = conf["cols"]["age"]
-    nb_col = conf["cols"]["nb"]
-    for i in range(first_row-1, last_row):
-        # parse age
-        age = sheet.cell(i, age_col-1).value
-        assert age != ''
-        if type(age) is str:
+    row_annee = conf["rows"]["annee"]-1
+    col_age = conf["cols"]["age"]-1
+    def _parse_age(val):
+        assert val != ''
+        if type(val) is str:
             # traitement specifique pour "100 et +"
-            age = int(re.sub("[^0-9]", "", age))
+            return int(re.sub("[^0-9]", "", val))
         else:
-            age = int(age)
-        # parse nb
-        nb = sheet.cell(i, nb_col-1).value
-        assert nb != ''
-        nb = int(nb)
-        rows.append({
-            "annee": conf["annee"],
-            "age": age,
-            "nb": nb
-        })
+            return int(val)
+    def _parse_int(val):
+        if type(val) is int:
+            return val
+        if (type(val) is float) or (type(val) is str and val.isdigit()):
+            return int(val)
+        return 0
+    pop_by_annee_age = defaultdict(int)
+    for annee in range(2000, 2020+1):
+        col = 0
+        while True:
+            annee_cell = _parse_int(sheet.cell(row_annee, col).value)
+            if annee_cell == annee:
+                for row in range(conf["rows"]["hommes_debut"]-1, conf["rows"]["hommes_fin"]):
+                    age = _parse_age(sheet.cell(row, col_age).value)
+                    nb_hommes = _parse_int(sheet.cell(row, col).value)
+                    pop_by_annee_age[(annee, age)] += nb_hommes
+                for row in range(conf["rows"]["femmes_debut"]-1, conf["rows"]["femmes_fin"]):
+                    age = _parse_age(sheet.cell(row, col_age).value)
+                    nb_femmes = _parse_int(sheet.cell(row, col).value)
+                    pop_by_annee_age[(annee, age)] += nb_femmes
+                break
+            col += 1
+            if col > 200:
+                raise(f"Annee {annee} not found")
+    rows = [{
+        "annee": annee,
+        "age": age,
+        "nb": nb
+    } for (annee, age), nb in pop_by_annee_age.items()]
     _db_bulk_insert(conn, "ages", rows)
 
 
