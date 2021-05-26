@@ -45,6 +45,8 @@ DECES_FILES_SRC = [
     "https://static.data.gouv.fr/resources/fichier-des-personnes-decedees/20191209-191225/deces-2008.txt",
     "https://static.data.gouv.fr/resources/fichier-des-personnes-decedees/20191209-191359/deces-2009.txt",
     "https://static.data.gouv.fr/resources/fichier-des-personnes-decedees/20191209-191659/deces-2010.txt",
+    "https://static.data.gouv.fr/resources/fichier-des-personnes-decedees/20191209-191745/deces-2011.txt",
+    "https://static.data.gouv.fr/resources/fichier-des-personnes-decedees/20191209-191851/deces-2012.txt",
     "https://static.data.gouv.fr/resources/fichier-des-personnes-decedees/20191209-191938/deces-2013.txt",
     "https://static.data.gouv.fr/resources/fichier-des-personnes-decedees/20191209-192022/deces-2014.txt",
     "https://static.data.gouv.fr/resources/fichier-des-personnes-decedees/20191209-192119/deces-2015.txt",
@@ -336,6 +338,30 @@ def _compute_deces_par_age():
             plt.plot(age_range, [nb_deces_par_age.get(i, 0) for i in age_range], label=dr["name"])
     plt.legend()
     plt.savefig(os.path.join(HERE, 'results/deces_par_age.png'))
+
+
+@main.command("compute_mortalite_moyenne_par_age")
+def compute_mortalite_moyenne_par_age():
+    _compute_mortalite_moyenne_par_age(list(range(2000,2020+1)))
+
+
+def _compute_mortalite_moyenne_par_age(annees):
+    print("compute _compute_mortalite_moyenne_par_age")
+    plt.clf()
+    plt.title("Mortalité moyennée par âge")
+    moyennes_mortalite = []
+    with _db_connect() as conn:
+        for annee in annees:
+            pop_par_age = _select_pop_par_age(conn, annee)
+            deces_par_age = _select_deces_par_age(conn, (f"{annee}-01-01", f"{annee}-12-31"))
+            mortalite_par_age = {
+                age: deces_par_age.get(age, 0) / pop if pop > 0 else 0
+                for age, pop in pop_par_age.items()
+            }
+            moyennes_mortalite.append(sum(mortalite_par_age.values()) / len(mortalite_par_age))
+    plt.bar(annees, moyennes_mortalite)
+    plt.legend()
+    plt.savefig(os.path.join(HERE, 'results/mortalite_moyenne_par_age.png'))
 
 
 # parsing

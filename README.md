@@ -4,7 +4,7 @@ Programme visant à calculer le taux de mortalité de la Covid19 en France et de
 
 Les données sont récupérées automatiquement par le programme depuis des sources officielles.
 
-# Résultats
+# Résultats: 1ier pic covid (mars/avril 2020) VS Grippe janvier 2017
 
 On peut constater sur le graphe suivant que la première vague de Covid19 en France a un taux de mortalité légèrement plus faible que l'épisode de grippe de janvier 2017:
 
@@ -23,6 +23,14 @@ Ainsi, l'excés de mortalité que nous avons connu lors de la première vague de
 On peut en effet constater que les âges dans lesquels le Covid19 a tué plus que la grippe de janvier 2017, sont les mêmes âges oú la population est plus nombreuse en 2020 qu'en 2017.
 
 ![Décès par âge](results/deces_par_age.png)
+
+# Résultats: Mortalités annuelles de 2000 à 2020
+
+On peut constater que la mortalité de l'année 2020 (1ière année du Covid19) est certes un peu plus élevée que l'année précédente (2019), mais reste tout à fait dans les normes des mortalités de ces 20 dernières années. Ce qui suggère que le Covid19 ne constitue aucunement un épisode épidémique exceptionnel.
+
+(Ici, la mortalité est moyennée par âge, ce qui permet de ne pas perturber les résultats comparatifs par le viellissement de la population).
+
+![Mortalité moyennée par âge](results/mortalite_moyenne_par_age.png)
 
 # Comment executer
 
