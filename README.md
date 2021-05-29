@@ -32,6 +32,14 @@ On peut constater que la mortalité de l'année 2020 (1ière année du Covid19) 
 
 ![Mortalité moyennée par âge](results/mortalite_moyenne_par_age.png)
 
+# Autres pays
+
+* [Suède](./README_se.md)
+
+# Infos complémentaires
+
+* [Chaine Youtube "Décoder l'éco"](https://www.youtube.com/watch?v=8pA9pfFUSIk)
+
 # Comment executer
 
 ```
