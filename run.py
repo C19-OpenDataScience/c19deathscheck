@@ -340,15 +340,15 @@ def _compute_deces_par_age():
     plt.savefig(os.path.join(HERE, 'results/deces_par_age.png'))
 
 
-@main.command("compute_mortalite_moyenne_par_age")
-def compute_mortalite_moyenne_par_age():
-    _compute_mortalite_moyenne_par_age(list(range(2000,2020+1)))
+@main.command("compute_taux_mortalite_moyenne_par_age")
+def compute_taux_mortalite_moyenne_par_age():
+    _compute_taux_mortalite_moyenne_par_age(list(range(2000,2020+1)))
 
 
-def _compute_mortalite_moyenne_par_age(annees):
-    print("compute _compute_mortalite_moyenne_par_age")
+def _compute_taux_mortalite_moyenne_par_age(annees):
+    print("compute _compute_taux_mortalite_moyenne_par_age")
     plt.clf()
-    plt.title("Mortalité moyennée par âge")
+    plt.title("Taux de mortalité moyennée par âge")
     moyennes_mortalite = []
     with _db_connect() as conn:
         for annee in annees:
@@ -361,7 +361,7 @@ def _compute_mortalite_moyenne_par_age(annees):
             moyennes_mortalite.append(sum(mortalite_par_age.values()) / len(mortalite_par_age))
     plt.bar(annees, moyennes_mortalite)
     plt.legend()
-    plt.savefig(os.path.join(HERE, 'results/mortalite_moyenne_par_age.png'))
+    plt.savefig(os.path.join(HERE, 'results/taux_mortalite_moyenne_par_age.png'))
 
 
 # parsing

@@ -30,7 +30,7 @@ On peut constater que la mortalité de l'année 2020 (1ière année du Covid19) 
 
 (Ici, la mortalité est moyennée par âge, ce qui permet de ne pas perturber les résultats comparatifs par le viellissement de la population).
 
-![Mortalité moyennée par âge](results/mortalite_moyenne_par_age.png)
+![Taux de mortalité moyennée par âge](results/taux_mortalite_moyenne_par_age.png)
 
 # Autres pays
 

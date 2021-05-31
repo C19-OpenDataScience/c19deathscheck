@@ -35,7 +35,7 @@ def main():
 def all():
     _init_db()
     _import_data()
-    _compute_mortality_meaned_by_age()
+    _compute_mortality_rate_meaned_by_age()
 
 
 @main.command("import_data")
@@ -98,13 +98,13 @@ def _import_age_pyramid_file(conn, conf):
 
 
 @main.command("compute_mortalite_moyenne_par_age")
-def compute_mortality_meaned_by_age():
-    _compute_mortality_meaned_by_age()
+def compute_mortality_rate_meaned_by_age():
+    _compute_mortality_rate_meaned_by_age()
 
-def _compute_mortality_meaned_by_age():
-    print("compute _compute_mortality_meaned_by_age")
+def _compute_mortality_rate_meaned_by_age():
+    print("compute _compute_mortality_rate_meaned_by_age")
     plt.clf()
-    plt.title("[Sweden] Mortality meaned by age")
+    plt.title("[Sweden] Mortality rate meaned by age")
     def _parse_cl_age(val):
         if '-' in val:
             years = [int(v) for v in val.split('-')]
@@ -130,7 +130,7 @@ def _compute_mortality_meaned_by_age():
     ]
     plt.bar(YEARS, mean_mortality_by_year)
     plt.legend()
-    plt.savefig(os.path.join(HERE, 'results/se_mortality_meaned_by_age.png'))
+    plt.savefig(os.path.join(HERE, 'results/se_mortality_rate_meaned_by_age.png'))
 
 
 def _select_pop_by_year_clage(conn):

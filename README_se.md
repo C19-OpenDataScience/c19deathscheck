@@ -14,7 +14,7 @@ Cela permet aussi de relativiser l'efficacité du confinement au regard de la mo
 
 (Ici, la mortalité est moyennée par âge, ce qui permet de ne pas perturber les résultats comparatifs par le viellissement de la population).
 
-![[Suède] Mortalité moyennée par âge](results/se_mortality_meaned_by_age.png)
+![[Suède] Taux de mortalité moyennée par âge](results/se_mortality_rate_meaned_by_age.png)
 
 # Comment executer
 
