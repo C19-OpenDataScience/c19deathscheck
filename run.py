@@ -97,6 +97,7 @@ def all():
     _compute_deces_par_date()
     _compute_population_par_age()
     _compute_deces_par_age()
+    _compute_taux_mortalite_moyenne_par_age(list(range(2000,2020+1)))
 
 
 @main.command("init_db")
@@ -246,7 +247,7 @@ def _compute_taux_mortalite_par_age():
     print(f"compute taux_mortalite_par_age")
     _assert_all_date_ranges_have_same_duration()
     plt.clf()
-    plt.title("Taux de mortalité par âge")
+    plt.title("[France] Taux de mortalité par âge")
     with _db_connect() as conn:
         age_range = list(range(1, 101))
         for dr in _get_date_ranges():
@@ -284,7 +285,7 @@ def _compute_deces_par_date():
     print(f"compute deces_par_date")
     _assert_all_date_ranges_have_same_duration()
     plt.clf()
-    plt.title("Décès par date")
+    plt.title("[France] Décès par date")
     with _db_connect() as conn:
         for dr in _get_date_ranges():
             deces_par_date = _select_deces_par_date(conn, dr["range"])
@@ -311,7 +312,7 @@ def _compute_population_par_age():
     print(f"compute population_par_age")
     _assert_all_date_ranges_have_same_duration()
     plt.clf()
-    plt.title("Population par âge")
+    plt.title("[France] Population par âge")
     age_range = list(range(1, 101))
     with _db_connect() as conn:
         for dr in _get_date_ranges():
@@ -330,7 +331,7 @@ def _compute_deces_par_age():
     print("compute deces_par_age")
     _assert_all_date_ranges_have_same_duration()
     plt.clf()
-    plt.title("Décès par âge")
+    plt.title("[France] Décès par âge")
     age_range = list(range(1, 101))
     with _db_connect() as conn:
         for dr in _get_date_ranges():
@@ -348,7 +349,7 @@ def compute_taux_mortalite_moyenne_par_age():
 def _compute_taux_mortalite_moyenne_par_age(annees):
     print("compute _compute_taux_mortalite_moyenne_par_age")
     plt.clf()
-    plt.title("Taux de mortalité moyennée par âge")
+    plt.title("[France] Taux de mortalité moyennée par âge")
     moyennes_mortalite = []
     with _db_connect() as conn:
         for annee in annees:
