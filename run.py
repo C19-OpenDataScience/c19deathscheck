@@ -365,6 +365,27 @@ def _compute_taux_mortalite_moyenne_par_age(annees):
     plt.savefig(os.path.join(HERE, 'results/taux_mortalite_moyenne_par_age.png'))
 
 
+
+@main.command("compute_mortalite_par_annee")
+def compute_mortalite_par_annee():
+    _compute_mortalite_par_annee()
+
+
+def _compute_mortalite_par_annee():
+    print("compute _mortalite_par_annee")
+    plt.clf()
+    plt.title("[France] Mortalité")
+    moyennes_mortalite = []
+    with _db_connect() as conn:
+        rows = conn.cursor().execute(
+            '''select substr(date_deces, 1, 4) as year, count(*) as nb from deces group by year order by year'''
+        )
+        res = [(int(year), nb) for year, nb in rows if int(year) >= 2000]
+        plt.bar([annee for annee, _ in res], [nb for _, nb in res])
+        plt.legend()
+        plt.savefig(os.path.join(HERE, 'results/mortalite_par_annee.png'))
+
+
 # parsing
 
 class ParseError(Exception):
