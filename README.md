@@ -24,11 +24,11 @@ On peut en effet constater que les âges dans lesquels le Covid19 a tué plus qu
 
 ![Décès par âge](results/deces_par_age.png)
 
-# Résultats: Mortalités annuelles de 2000 à 2020
+# Résultats: Taux de mortalité annuelles de 2000 à 2020
 
-On peut constater que la mortalité de l'année 2020 (1ière année du Covid19) est certes un peu plus élevée que l'année précédente (2019), mais reste tout à fait dans les normes des mortalités de ces 20 dernières années. Ce qui suggère que le Covid19 ne constitue aucunement un épisode épidémique exceptionnel.
+On peut constater que le taux de mortalité de l'année 2020 (1ière année du Covid19) est certes un peu plus élevée que l'année précédente (2019), mais reste tout à fait dans les normes des taux de mortalité de ces 20 dernières années. Ce qui suggère que le Covid19 ne constitue aucunement un épisode épidémique exceptionnel.
 
-(Ici, la mortalité est moyennée par âge, ce qui permet de ne pas perturber les résultats comparatifs par le viellissement de la population).
+(Ici, le taux de mortalité est moyennée par âge, ce qui permet de ne pas perturber les résultats comparatifs par le viellissement de la population).
 
 ![Taux de mortalité moyennée par âge](results/taux_mortalite_moyenne_par_age.png)
 
