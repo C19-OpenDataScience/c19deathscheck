@@ -10,7 +10,6 @@ from collections import defaultdict
 from glob import glob
 import xlrd
 import matplotlib.pyplot as plt
-import chardet
 
 HERE = os.path.dirname(__file__)
 
@@ -169,7 +168,7 @@ def _import_deces_file(conn, conf):
                 date_deces = _parse_date(line[154:162].decode("utf-8"))
                 naissance_dt = _to_dt(date_naissance)
                 deces_dt = _to_dt(date_deces)
-                age = _dt_to_annees(deces_dt - naissance_dt)
+                age = max(0, min(100, _dt_to_annees(deces_dt - naissance_dt)))
                 parsed = {
                     "sex": _parse_sex(line[80:81].decode("utf-8")),
                     "date_naissance": date_naissance,
@@ -203,9 +202,10 @@ def _import_pda_file(conn, conf):
         assert val != ''
         if type(val) is str:
             # traitement specifique pour "100 et +"
-            return int(re.sub("[^0-9]", "", val))
+            res= int(re.sub("[^0-9]", "", val))
         else:
-            return int(val)
+            res = int(val)
+        return max(0, min(100, res))
     def _parse_int(val):
         if type(val) is int:
             return val
@@ -251,10 +251,7 @@ def _compute_taux_mortalite_par_age():
     with _db_connect() as conn:
         age_range = list(range(1, 101))
         for dr in _get_date_ranges():
-            pop_par_age = _select_pop_par_age(conn, dr["year"])
-            nb_deces_par_age = _select_deces_par_age(conn, dr["range"])
-            _div = lambda a, b: a/b if b else 0
-            taux_mortalite_par_age = {age: _div(nb, pop_par_age.get(age)) for age, nb in nb_deces_par_age.items()}
+            taux_mortalite_par_age = __compute_taux_mortalite_par_age(conn, dr["year"], dr["range"])
             plt.plot(age_range, [taux_mortalite_par_age.get(i, 0) for i in age_range], label=dr["name"])
     plt.legend()
     plt.savefig(os.path.join(HERE, 'results/taux_mortalite_par_age.png'))
@@ -274,6 +271,13 @@ def _select_deces_par_age(conn, date_range):
         [*date_range]
     )
     return {age: nb for age, nb in rows}
+
+
+def __compute_taux_mortalite_par_age(conn, year, date_range):
+    pop_par_age = _select_pop_par_age(conn, year)
+    nb_deces_par_age = _select_deces_par_age(conn, date_range)
+    _div = lambda a, b: a/b if b else 0
+    return {age: _div(nb, pop_par_age.get(age)) for age, nb in nb_deces_par_age.items()}
 
 
 @main.command("compute_deces_par_date")
@@ -347,7 +351,7 @@ def compute_taux_mortalite_moyenne_par_age():
 
 
 def _compute_taux_mortalite_moyenne_par_age(annees):
-    print("compute _compute_taux_mortalite_moyenne_par_age")
+    print("compute compute_taux_mortalite_moyenne_par_age")
     plt.clf()
     plt.title("[France] Taux de mortalité moyennée par âge")
     moyennes_mortalite = []
@@ -372,7 +376,7 @@ def compute_mortalite_par_annee():
 
 
 def _compute_mortalite_par_annee():
-    print("compute _mortalite_par_annee")
+    print("compute mortalite_par_annee")
     plt.clf()
     plt.title("[France] Mortalité")
     moyennes_mortalite = []
