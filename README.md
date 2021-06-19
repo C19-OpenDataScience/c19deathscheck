@@ -36,7 +36,7 @@ On peut constater que le taux de mortalité de l'année 2020 (1ière année du C
 
 Ici une simulation de la mortalité par année, de 2010 à 2050, a été réalisée, et comparée à la mortalité réelle observée.
 
-Cette simulation a été réalisée avec une mortalité par âge constante (moyenne sur les 10 dernières années), et en faisant évoluer la pyramide des âges.
+Cette simulation a été réalisée avec une mortalité par âge constante (moyenne entre 2010 et 2019), et en faisant évoluer la pyramide des âges.
 
 ![Prévision de mortalité](results/prevision_morts.png)
 
