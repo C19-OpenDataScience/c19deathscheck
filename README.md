@@ -32,6 +32,21 @@ On peut constater que la mortalité de l'année 2020 (1ière année du Covid19) 
 
 ![Taux de mortalité moyennée par âge](results/taux_mortalite_moyenne_par_age.png)
 
+# Prévision de mortalité
+
+Ici une simulation de la mortalité par année, de 2010 à 2050, a été réalisée, et comparée à la mortalité réelle observée.
+
+Cette simulation a été réalisée avec une mortalité par âge constante (moyenne sur les 10 dernières années), et en faisant évoluer la pyramide des âges.
+
+![Prévision de mortalité](results/prevision_morts.png)
+
+On peut constater que:
+* Le vieillissement de la population entraine une hausse de la mortalité depuis au moins 10 ans.
+* Cette hausse devrait continuer jusqu'en 2040.
+* La mortalité en 2020 semble rattraper un mimimum local.
+
+Selon ces résultats, et si l'on considère raisonnable l'hypothèse que l'occupation des réanimations soit corrélée à la mortalité, on peut s'attendre à ce que la saturation des hopitaux (qui en 2020 a été la justification des mesures de distanciations sociales et de confinements) continue de s'empirer, non pas du fait d'un virus particulier, mais simplement du fait du vieillissement de la population.
+
 # Autres pays
 
 * [Suède](./README_se.md)

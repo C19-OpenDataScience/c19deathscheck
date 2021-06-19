@@ -10,6 +10,7 @@ from collections import defaultdict
 from glob import glob
 import xlrd
 import matplotlib.pyplot as plt
+from statistics import mean
 
 HERE = os.path.dirname(__file__)
 
@@ -97,6 +98,7 @@ def all():
     _compute_population_par_age()
     _compute_deces_par_age()
     _compute_taux_mortalite_moyenne_par_age(list(range(2000,2020+1)))
+    _compute_mortality_forecast()
 
 
 @main.command("init_db")
@@ -381,13 +383,68 @@ def _compute_mortalite_par_annee():
     plt.title("[France] Mortalité")
     moyennes_mortalite = []
     with _db_connect() as conn:
-        rows = conn.cursor().execute(
-            '''select substr(date_deces, 1, 4) as year, count(*) as nb from deces group by year order by year'''
-        )
-        res = [(int(year), nb) for year, nb in rows if int(year) >= 2000]
-        plt.bar([annee for annee, _ in res], [nb for _, nb in res])
+        res = __compute_mortalite_par_annee(conn, 2000, 2020)
+        plt.bar(res.keys(),res.values())
         plt.legend()
         plt.savefig(os.path.join(HERE, 'results/mortalite_par_annee.png'))
+
+
+def __compute_mortalite_par_annee(conn, annee1, annee2):
+    rows = conn.cursor().execute(
+        '''select substr(date_deces, 1, 4) as year, count(*) as nb from deces where date_deces between ? and ? group by year order by year''',
+        (str(annee1), str(annee2+1))
+    )
+    return {int(year): nb for year, nb in rows}
+
+
+
+@main.command("compute_mortality_forecast")
+def compute_mortality_forecast():
+    _compute_mortality_forecast()
+
+
+def _compute_mortality_forecast():
+    print("compute mortality_forecast")
+    plt.clf()
+    plt.title("[France] Prévision de mortalité")
+    DEBUT_PREV = 2010
+    with _db_connect() as conn:
+        mortalite_reelle_par_annee = __compute_mortalite_par_annee(conn, DEBUT_PREV, 2020)
+        taux_mortalite_par_age_moyen = _compute_taux_mortalite_par_age_moyen(conn, DEBUT_PREV, 2019)
+        prev_morts = {}
+        pop_par_age = _select_pop_par_age(conn, DEBUT_PREV)
+        def _estimate_mort_par_age():
+            return {
+                age: pop_par_age[age] * taux_mortalite_par_age_moyen[age]
+                for age in range(0, 100+1)
+            }
+        mort_par_age = _estimate_mort_par_age()
+        prev_morts[DEBUT_PREV] = sum(mort_par_age.values())
+        for annee in range(DEBUT_PREV+1, 2050+1):
+            pop_par_age[100] = max(0, pop_par_age[99] - mort_par_age[99]) + max(0, pop_par_age[100] - mort_par_age[100])
+            for age in reversed(range(1, 99+1)):
+                pop_par_age[age] = max(0, pop_par_age[age-1] - mort_par_age[age-1])
+            mort_par_age = _estimate_mort_par_age()
+            prev_morts[annee] = sum(mort_par_age.values())
+    plt.bar(mortalite_reelle_par_annee.keys(), mortalite_reelle_par_annee.values(), label="Mortalité réelle")
+    plt.plot(prev_morts.keys(), prev_morts.values(), 'r', label="Prévision de mortalité")
+    plt.legend()
+    plt.savefig(os.path.join(HERE, 'results/prevision_morts.png'))
+
+
+def _compute_taux_mortalite_par_age_moyen(conn, annee1, annee2):
+    taux_mortalite_par_age_par_annee = {
+        annee: __compute_taux_mortalite_par_age(conn, annee, (f"{annee}-01-01", f"{annee}-12-31"))
+        for annee in range(annee1, annee2+1)
+    }
+    return {
+        age: mean(
+            taux_mortalite_par_age_par_annee[annee][age]
+            for annee in range(annee1, annee2+1)
+        )
+        for age in range(0, 100+1)
+    }
+
 
 
 # parsing
