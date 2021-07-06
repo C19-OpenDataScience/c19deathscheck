@@ -8,7 +8,7 @@ Les données sont récupérées automatiquement par le programme depuis des sour
 
 On peut constater sur le graphe suivant que la première vague de Covid19 en France a un taux de mortalité légèrement plus faible que l'épisode de grippe de janvier 2017:
 
-![Taux de mortalité par âge](results/taux_mortalite_par_age.png)
+![Taux de mortalité par âge](results/taux_mortalite_par_age_pics_2017_2020.png)
 
 Pourtant le nombre total de décès est supérieur pour la Covid19:
 

@@ -93,7 +93,8 @@ def all():
     _init_db()
     _download_data()
     _import_data()
-    _compute_taux_mortalite_par_age()
+    _compute_taux_mortalite_par_age_pics_2017_2020()
+    _compute_taux_mortalite_par_age_2000_2020()
     _compute_deces_par_date()
     _compute_population_par_age()
     _compute_deces_par_age()
@@ -240,23 +241,41 @@ def _import_pda_file(conn, conf):
     _db_bulk_insert(conn, "ages", rows)
 
 
-@main.command("compute_taux_mortalite_par_age")
-def compute_taux_mortalite_par_age():
-    _compute_taux_mortalite_par_age()
+@main.command("compute_taux_mortalite_par_age_pics_2017_2020")
+def compute_taux_mortalite_par_age_pics_2017_2020():
+    _compute_taux_mortalite_par_age_pics_2017_2020()
+
+def _compute_taux_mortalite_par_age_pics_2017_2020():
+    print(f"compute taux_mortalite_par_age pics_2017_2020")
+    _compute_taux_mortalite_par_age([
+        {"name":"Grippe (de 2017-01-01 à 2017-02-01)", "year":2017, "range":("2017-01-01", "2017-02-01")},
+        {"name":"Covid19 (de 2020-03-20 à 2020-04-20)", "year":2020, "range":("2020-03-20", "2020-04-20")},
+    ], 'taux_mortalite_par_age_pics_2017_2020.png')
 
 
-def _compute_taux_mortalite_par_age():
-    print(f"compute taux_mortalite_par_age")
+@main.command("compute_taux_mortalite_par_age_2010_2020")
+def compute_taux_mortalite_par_age_2010_2020():
+    _compute_taux_mortalite_par_age_2010_2020()
+
+def _compute_taux_mortalite_par_age_2010_2020():
+    print(f"compute taux_mortalite_par_age 2010_2020")
+    _compute_taux_mortalite_par_age([
+        {"name":str(annee), "year":annee, "range":(f"{annee}-01-01", f"{annee}-12-31")}
+        for annee in range(2010, 2020+1)
+    ], 'taux_mortalite_par_age_2010_2020.png')
+
+
+def _compute_taux_mortalite_par_age(ranges, ofname):
     _assert_all_date_ranges_have_same_duration()
     plt.clf()
     plt.title("[France] Taux de mortalité par âge")
     with _db_connect() as conn:
         age_range = list(range(1, 101))
-        for dr in _get_date_ranges():
+        for dr in ranges:
             taux_mortalite_par_age = __compute_taux_mortalite_par_age(conn, dr["year"], dr["range"])
             plt.plot(age_range, [taux_mortalite_par_age.get(i, 0) for i in age_range], label=dr["name"])
     plt.legend()
-    plt.savefig(os.path.join(HERE, 'results/taux_mortalite_par_age.png'))
+    plt.savefig(os.path.join(HERE, f'results/{ofname}'))
 
 
 def _select_pop_par_age(conn, annee):
