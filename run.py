@@ -10,7 +10,7 @@ from collections import defaultdict
 from glob import glob
 import xlrd
 import matplotlib.pyplot as plt
-from statistics import mean
+from statistics import mean, stdev
 
 HERE = os.path.dirname(__file__)
 
@@ -94,7 +94,7 @@ def all():
     _download_data()
     _import_data()
     _compute_taux_mortalite_par_age_pics_2017_2020()
-    _compute_taux_mortalite_par_age_2000_2020()
+    _compute_taux_mortalite_par_age_2010_2020()
     _compute_deces_par_date()
     _compute_population_par_age()
     _compute_deces_par_age()
@@ -444,11 +444,14 @@ def _compute_mortality_forecast():
             for age in reversed(range(1, 99+1)):
                 pop_par_age[age] = max(0, pop_par_age[age-1] - mort_par_age[age-1])
             mort_par_age = _estimate_mort_par_age()
-            prev_morts[annee] = sum(mort_par_age.values())
+            sum_morts = sum(mort_par_age.values())
+            prev_morts[annee] = sum_morts
+            print(annee, mortalite_reelle_par_annee.get(annee, 0), sum_morts)
     plt.bar(mortalite_reelle_par_annee.keys(), mortalite_reelle_par_annee.values(), label="Mortalité réelle")
     plt.plot(prev_morts.keys(), prev_morts.values(), 'r', label="Prévision de mortalité")
     plt.legend()
     plt.savefig(os.path.join(HERE, 'results/prevision_morts.png'))
+    print("Ecart type", stdev([(prev_morts[annee]-mortalite_reelle_par_annee[annee]) for annee in range(DEBUT_PREV, 2020+1)]))
 
 
 def _compute_taux_mortalite_par_age_moyen(conn, annee1, annee2):
