@@ -12,17 +12,17 @@ On peut constater sur le graphe suivant que la première vague de Covid19 en Fra
 
 Pourtant le nombre total de décès est supérieur pour la Covid19:
 
-![Décès par date](results/deces_par_date.png)
+![Décès par date](results/deces_par_date_pics_2017_2020.png)
 
 Cette apparente différence s'explique par le fait que nous connaissons actuellement en France un vieillissement rapide de la population (phénomène connu sous le nom de "Papy Boom"). Le nombre de personnes autour de 75 ans est en rapide augmentation, or cette tranche de la population est parmi celle qui est la plus vulnérable aux épidémies hivernales.
 
-![Population par âge](results/population_par_age.png)
+![Population par âge](results/population_par_age_pics_2017_2020.png)
 
 Ainsi, l'excés de mortalité que nous avons connu lors de la première vague de Covid19 s'explique non pas par la gravité du virus, qui au final semble n'avoir rien d'inhabituelle, mais simplement par le vieillisement rapide la population.
 
 On peut en effet constater que les âges dans lesquels le Covid19 a tué plus que la grippe de janvier 2017, sont les mêmes âges oú la population est plus nombreuse en 2020 qu'en 2017.
 
-![Décès par âge](results/deces_par_age.png)
+![Décès par âge](results/deces_par_age_pics_2017_2020.png)
 
 # Résultats: Taux de mortalité annuelles de 2000 à 2020
 
@@ -30,7 +30,7 @@ On peut constater que le taux de mortalité de l'année 2020 (1ière année du C
 
 (Ici, le taux de mortalité est moyennée par âge, ce qui permet de ne pas perturber les résultats comparatifs par le viellissement de la population).
 
-![Taux de mortalité moyennée par âge](results/taux_mortalite_moyenne_par_age.png)
+![Taux de mortalité moyennée par âge](results/taux_mortalite_moyenne_par_age_2000_to_2020.png)
 
 # Prévision de mortalité
 
