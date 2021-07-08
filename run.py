@@ -89,17 +89,19 @@ def main():
 
 
 @main.command("all")
-def all():
-    _init_db()
-    _download_data()
-    _import_data()
-    _compute_taux_mortalite_par_age_pics_2017_2020()
-    _compute_taux_mortalite_par_age_2010_2020()
-    _compute_deces_par_date()
-    _compute_population_par_age()
-    _compute_deces_par_age()
-    _compute_taux_mortalite_moyenne_par_age(list(range(2000,2020+1)))
-    _compute_mortality_forecast()
+@click.option("--import", "do_import", type=bool, default=True)
+def cmd_all(do_import):
+    if do_import:
+        _init_db()
+        _download_data()
+        _import_data()
+    compute_taux_mortalite_par_age_pics_2017_2020()
+    compute_taux_mortalite_par_age_2010_2020()
+    compute_deces_par_date()
+    compute_population_par_age()
+    compute_deces_par_age()
+    compute_taux_mortalite_moyenne_par_age(list(range(2000,2020+1)))
+    compute_mortality_forecast()
 
 
 @main.command("init_db")
@@ -242,10 +244,10 @@ def _import_pda_file(conn, conf):
 
 
 @main.command("compute_taux_mortalite_par_age_pics_2017_2020")
-def compute_taux_mortalite_par_age_pics_2017_2020():
-    _compute_taux_mortalite_par_age_pics_2017_2020()
+def cmd_compute_taux_mortalite_par_age_pics_2017_2020():
+    compute_taux_mortalite_par_age_pics_2017_2020()
 
-def _compute_taux_mortalite_par_age_pics_2017_2020():
+def compute_taux_mortalite_par_age_pics_2017_2020():
     print(f"compute taux_mortalite_par_age pics_2017_2020")
     _compute_taux_mortalite_par_age([
         {"name":"Grippe (de 2017-01-01 à 2017-02-01)", "year":2017, "range":("2017-01-01", "2017-02-01")},
@@ -254,10 +256,10 @@ def _compute_taux_mortalite_par_age_pics_2017_2020():
 
 
 @main.command("compute_taux_mortalite_par_age_2010_2020")
-def compute_taux_mortalite_par_age_2010_2020():
-    _compute_taux_mortalite_par_age_2010_2020()
+def cmd_compute_taux_mortalite_par_age_2010_2020():
+    compute_taux_mortalite_par_age_2010_2020()
 
-def _compute_taux_mortalite_par_age_2010_2020():
+def compute_taux_mortalite_par_age_2010_2020():
     print(f"compute taux_mortalite_par_age 2010_2020")
     _compute_taux_mortalite_par_age([
         {"name":str(annee), "year":annee, "range":(f"{annee}-01-01", f"{annee}-12-31")}
@@ -302,11 +304,11 @@ def __compute_taux_mortalite_par_age(conn, year, date_range):
 
 
 @main.command("compute_deces_par_date")
+def cmd_compute_deces_par_date():
+    compute_deces_par_date()
+
+
 def compute_deces_par_date():
-    _compute_deces_par_date()
-
-
-def _compute_deces_par_date():
     print(f"compute deces_par_date")
     _assert_all_date_ranges_have_same_duration()
     plt.clf()
@@ -329,11 +331,11 @@ def _select_deces_par_date(conn, date_range):
 
 
 @main.command("compute_population_par_age")
+def cmd_compute_population_par_age():
+    compute_population_par_age()
+
+
 def compute_population_par_age():
-    _compute_population_par_age()
-
-
-def _compute_population_par_age():
     print(f"compute population_par_age")
     _assert_all_date_ranges_have_same_duration()
     plt.clf()
@@ -348,11 +350,11 @@ def _compute_population_par_age():
 
 
 @main.command("compute_deces_par_age")
+def cmd_compute_deces_par_age():
+    compute_deces_par_age()
+
+
 def compute_deces_par_age():
-    _compute_deces_par_age()
-
-
-def _compute_deces_par_age():
     print("compute deces_par_age")
     _assert_all_date_ranges_have_same_duration()
     plt.clf()
@@ -367,11 +369,11 @@ def _compute_deces_par_age():
 
 
 @main.command("compute_taux_mortalite_moyenne_par_age")
-def compute_taux_mortalite_moyenne_par_age():
-    _compute_taux_mortalite_moyenne_par_age(list(range(2000,2020+1)))
+def cmd_compute_taux_mortalite_moyenne_par_age():
+    compute_taux_mortalite_moyenne_par_age(list(range(2000,2020+1)))
 
 
-def _compute_taux_mortalite_moyenne_par_age(annees):
+def compute_taux_mortalite_moyenne_par_age(annees):
     print("compute compute_taux_mortalite_moyenne_par_age")
     plt.clf()
     plt.title("[France] Taux de mortalité moyennée par âge")
@@ -392,11 +394,11 @@ def _compute_taux_mortalite_moyenne_par_age(annees):
 
 
 @main.command("compute_mortalite_par_annee")
+def cmd_compute_mortalite_par_annee():
+    compute_mortalite_par_annee()
+
+
 def compute_mortalite_par_annee():
-    _compute_mortalite_par_annee()
-
-
-def _compute_mortalite_par_annee():
     print("compute mortalite_par_annee")
     plt.clf()
     plt.title("[France] Mortalité")
@@ -418,11 +420,11 @@ def __compute_mortalite_par_annee(conn, annee1, annee2):
 
 
 @main.command("compute_mortality_forecast")
+def cmd_compute_mortality_forecast():
+    compute_mortality_forecast()
+
+
 def compute_mortality_forecast():
-    _compute_mortality_forecast()
-
-
-def _compute_mortality_forecast():
     print("compute mortality_forecast")
     plt.clf()
     plt.title("[France] Prévision de mortalité")
