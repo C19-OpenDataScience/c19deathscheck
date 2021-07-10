@@ -10,6 +10,7 @@ from collections import defaultdict
 from glob import glob
 import xlrd
 import matplotlib.pyplot as plt
+from math import floor
 from statistics import mean, stdev
 
 HERE = os.path.dirname(__file__)
@@ -129,7 +130,6 @@ def main():
 @click.option("--import", "do_import", type=bool, default=True)
 def cmd_all(do_import):
     if do_import:
-        _init_db()
         _download_data()
         _import_data()
     compute_taux_mortalite_par_age("pics_2017_2020")
@@ -137,13 +137,9 @@ def cmd_all(do_import):
     compute_deces_par_date("pics_2017_2020")
     compute_population_par_age("pics_2017_2020")
     compute_deces_par_age("pics_2017_2020")
+    compute_deces_par_age("2016_2020", simulate=True)
     compute_taux_mortalite_moyenne_par_age("2000_to_2020")
     compute_mortality_forecast()
-
-
-@main.command("init_db")
-def init_db_cmd():
-    _init_db()
 
 
 def _db_connect():
@@ -184,6 +180,7 @@ def _download_data_file(conf):
 
 @main.command("import_data")
 def import_data_cmd():
+    _init_db()
     _import_data()
 
 
@@ -500,7 +497,7 @@ def compute_mortality_forecast():
         pop_par_age = _select_pop_par_age(conn, DEBUT_PREV)
         def _estimate_mort_par_age():
             return {
-                age: pop_par_age[age] * taux_mortalite_par_age_moyen[age]
+                age: floor(pop_par_age[age] * taux_mortalite_par_age_moyen[age])
                 for age in range(0, 100+1)
             }
         mort_par_age = _estimate_mort_par_age()
@@ -512,12 +509,12 @@ def compute_mortality_forecast():
             mort_par_age = _estimate_mort_par_age()
             sum_morts = sum(mort_par_age.values())
             prev_morts[annee] = sum_morts
-            print(annee, mortalite_reelle_par_annee.get(annee, 0), sum_morts)
+            # print(annee, mortalite_reelle_par_annee.get(annee, 0), sum_morts)
     plt.bar(mortalite_reelle_par_annee.keys(), mortalite_reelle_par_annee.values(), label="Mortalité réelle")
     plt.plot(prev_morts.keys(), prev_morts.values(), 'r', label="Prévision de mortalité")
     plt.legend()
     plt.savefig(os.path.join(HERE, 'results/prevision_morts.png'))
-    print("Ecart type", stdev([(prev_morts[annee]-mortalite_reelle_par_annee[annee]) for annee in range(DEBUT_PREV, 2020+1)]))
+    # print("Ecart type", stdev([(prev_morts[annee]-mortalite_reelle_par_annee[annee]) for annee in range(DEBUT_PREV, 2020+1)]))
 
 
 def _compute_taux_mortalite_par_age_moyen(conn, annee1, annee2):

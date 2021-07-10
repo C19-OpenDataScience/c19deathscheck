@@ -24,6 +24,20 @@ On peut en effet constater que les âges dans lesquels le Covid19 a tué plus qu
 
 ![Décès par âge](results/deces_par_age_pics_2017_2020.png)
 
+# Résultats: 2016 VS 2020
+
+Pour confirmer l'impact de la pyramide des âges sur la surmortalité en 2020, on peut essayer d'appliquer le taux de mortalité par âge d'une année à forte grippe (2016) à la pyramide des âges de 2020 (courbe verte).
+
+On "comble" ainsi les différences de mortalité entre 2016 (bleu) et 2020 (orange), et ce pile aux âges où justement il y avait une différence.
+
+Ce qui semble confirmer que la surmortalité 2020 s'explique en très grande partie par une plus grande population de personnes âgées en 2020.
+
+Ces différences de population peuvent s'expliquer par:
+- Le papy boom (autour de 65 ans)
+- Des grippes 2018 et 2019 peu mortelles (85 ans et +)
+
+![Décès par âge](results/deces_par_age_2016_2020.png)
+
 # Résultats: Taux de mortalité annuelles de 2000 à 2020
 
 On peut constater que le taux de mortalité de l'année 2020 (1ière année du Covid19) est certes un peu plus élevée que l'année précédente (2019), mais reste tout à fait dans les normes des taux de mortalité de ces 20 dernières années. Ce qui suggère que le Covid19 ne constitue aucunement un épisode épidémique exceptionnel.
