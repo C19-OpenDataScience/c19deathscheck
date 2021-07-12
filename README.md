@@ -38,13 +38,27 @@ Ces différences de population peuvent s'expliquer par:
 
 ![Décès par âge](results/deces_par_age_2016_2020.png)
 
-# Résultats: Taux de mortalité annuelles de 2000 à 2020
+# Résultats: Taux de mortalité standardisés annuels de 2000 à 2020
 
 On peut constater que le taux de mortalité de l'année 2020 (1ière année du Covid19) est certes un peu plus élevée que l'année précédente (2019), mais reste tout à fait dans les normes des taux de mortalité de ces 20 dernières années. Ce qui suggère que le Covid19 ne constitue aucunement un épisode épidémique exceptionnel.
 
-(Ici, le taux de mortalité est moyennée par âge, ce qui permet de ne pas perturber les résultats comparatifs par le viellissement de la population).
+(Ici, le taux de mortalité est standardisé par âge, ce qui permet de ne pas perturber les résultats comparatifs par le viellissement de la population).
 
-![Taux de mortalité moyennée par âge](results/taux_mortalite_moyenne_par_age_2000_to_2020.png)
+![Taux de mortalité standardisé par âge](results/taux_mortalite_standardise_par_age_2000_to_2020.png)
+
+# Résultats: Surmortalité 2020
+
+On nous présente le covid comme ayant provoqué plus de 110k morts en France. Mais par ce chiffre nous ne savons rien de l'âge de ces morts, de leur état de santé, ni de si ils seraient morts ou non sans le covid.
+
+Pour savoir cela, on peut estimer la surmortalité en 2020 en comparant la mortalité réelle avec une estimation basée sur un taux de mortalité par âge constant.
+
+Si pour ce taux de mortalité constant on prend une moyenne de 2015 à 2019, on voit que la surmortalité 2020 ne dépasse pas la déviantion standard (environ 15k morts). Ce qui la encore ne suggère rien d'exceptionnel concernant la mortalité du covid.
+
+![Surmortalité avec taux mortalité moyen depuis 2015](results/surmortalite_2015.png)
+
+Si pour ce taux de mortalité constant on prend une moyenne de 2010 à 2019, la surmortalité 2020 est très proche de 0.
+
+![Surmortalité avec taux mortalité moyen depuis 2010](results/surmortalite_2010.png)
 
 # Prévision de mortalité
 

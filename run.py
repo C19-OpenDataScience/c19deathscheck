@@ -138,8 +138,9 @@ def cmd_all(do_import):
     compute_population_par_age("pics_2017_2020")
     compute_deces_par_age("pics_2017_2020")
     compute_deces_par_age("2016_2020", simulate=True)
-    compute_taux_mortalite_moyenne_par_age("2000_to_2020")
+    compute_taux_mortalite_standardise_par_age("2000_to_2020")
     compute_mortality_forecast()
+    compute_surmortality()
 
 
 def _db_connect():
@@ -422,15 +423,15 @@ def _simulate_deces_par_age(conn, year1, range1, year2):
     }
 
 
-@main.command("compute_taux_mortalite_moyenne_par_age")
+@main.command("compute_taux_mortalite_standardise_par_age")
 @click.argument("date_ranges", type=click.Choice(RANGES.keys()))
 @click.option("--age-min", type=int, default=0)
-def cmd_compute_taux_mortalite_moyenne_par_age(date_ranges, age_min):
-    compute_taux_mortalite_moyenne_par_age(date_ranges, age_min=age_min)
+def cmd_compute_taux_mortalite_standardise_par_age(date_ranges, age_min):
+    compute_taux_mortalite_standardise_par_age(date_ranges, age_min=age_min)
 
 
-def compute_taux_mortalite_moyenne_par_age(drkey, age_min=0):
-    print(f"compute taux_mortalite_moyenne_par_age {drkey}")
+def compute_taux_mortalite_standardise_par_age(drkey, age_min=0):
+    print(f"compute taux_mortalite_standardise_par_age {drkey}")
     plt.clf()
     plt.title("[France] Taux de mortalité moyennée par âge")
     moyennes_mortalite = []
@@ -447,7 +448,7 @@ def compute_taux_mortalite_moyenne_par_age(drkey, age_min=0):
             moyennes_mortalite.append(sum(mortalite_par_age.values()) / len(mortalite_par_age))
     plt.bar([dr["year"] for dr in RANGES[drkey]], moyennes_mortalite)
     plt.legend()
-    plt.savefig(os.path.join(HERE, f'results/taux_mortalite_moyenne_par_age_{drkey}.png'))
+    plt.savefig(os.path.join(HERE, f'results/taux_mortalite_standardise_par_age_{drkey}.png'))
 
 
 @main.command("compute_mortalite_par_annee")
@@ -530,6 +531,42 @@ def _compute_taux_mortalite_par_age_moyen(conn, annee1, annee2):
         for age in range(0, 100+1)
     }
 
+
+@main.command("compute_surmortality")
+@click.option("--debut", default=2010)
+def cmd_compute_surmortality(debut):
+    compute_surmortality(debut=debut)
+
+def compute_surmortality(debut=2010):
+    print("compute surmortality")
+    plt.clf()
+    plt.title("[France] Surmortalité")
+    DEBUT = 2010
+    FIN_TAUX_MORTALITE = 2019
+    FIN = 2020
+    with _db_connect() as conn:
+        mortalite_reelle_par_annee = __compute_mortalite_par_annee(conn, range(debut, FIN+1))
+        taux_mortalite_par_age_moyen = _compute_taux_mortalite_par_age_moyen(conn, debut, FIN_TAUX_MORTALITE)
+        pop_par_ages = {
+            annee: _select_pop_par_age(conn, annee)
+            for annee in range(debut, FIN+1)
+        }
+        mortalite_estimee_par_annee = {
+            annee: sum(
+                taux_mortalite_par_age_moyen[age] * pop_par_ages[annee][age]
+                for age in range(0, 100+1)
+            )
+            for annee in range(debut, FIN+1)
+        }
+        surmortalite_par_annee = {
+            annee: mortalite_reelle_par_annee[annee] - mortalite_estimee_par_annee[annee]
+            for annee in range(debut, FIN+1)
+        }
+        surmortalite_stdev = stdev(surmortalite_par_annee.values())
+    plt.bar(range(debut, FIN+1), surmortalite_par_annee.values(), label=f"Surmortalité (avec taux mortalité moyen depuis {debut})")
+    plt.hlines(surmortalite_stdev, debut, FIN, colors='r')
+    plt.legend()
+    plt.savefig(os.path.join(HERE, f'results/surmortalite_{debut}.png'))
 
 
 # parsing
