@@ -150,7 +150,7 @@ def _db_connect():
 def _init_db():
     with _db_connect() as conn:
         cur = conn.cursor()
-        cur.execute('''CREATE TABLE IF NOT EXISTS deces(sex text, date_naissance text, date_deces text, age integer)''')
+        cur.execute('''CREATE TABLE IF NOT EXISTS deces(sex text, date_naissance text, date_deces text, lieu_deces text, age integer, is_metro bool)''')
         cur.execute('''DELETE FROM deces''')
         cur.execute('''CREATE TABLE IF NOT EXISTS ages(annee integer, age integer, nb integer)''')
         cur.execute('''DELETE FROM ages''')
@@ -206,6 +206,7 @@ def _import_deces_file(conn, conf):
             try:
                 date_naissance = _parse_date(line[81:89].decode("utf-8"), def_month="06", def_day="15")
                 date_deces = _parse_date(line[154:162].decode("utf-8"))
+                lieu_deces = line[162:167].decode("utf-8")
                 naissance_dt = _to_dt(date_naissance)
                 deces_dt = _to_dt(date_deces)
                 age = max(0, min(100, _dt_to_annees(deces_dt - naissance_dt)))
@@ -213,7 +214,9 @@ def _import_deces_file(conn, conf):
                     "sex": _parse_sex(line[80:81].decode("utf-8")),
                     "date_naissance": date_naissance,
                     "date_deces": date_deces,
-                    "age": age
+                    "lieu_deces": lieu_deces,
+                    "age": age,
+                    "is_metro": _parse_int(lieu_deces, 99999) < 96000
                 }
                 rows.append(parsed)
                 nb_inserted += 1
@@ -310,7 +313,7 @@ def _select_pop_par_age(conn, annee):
 
 def _select_deces_par_age(conn, date_range):
     rows = conn.cursor().execute(
-        '''SELECT age, count(*) FROM deces WHERE date_deces BETWEEN ? AND ? GROUP BY age''',
+        '''SELECT age, count(*) FROM deces WHERE is_metro=true AND date_deces BETWEEN ? AND ? GROUP BY age''',
         [*date_range]
     )
     return {age: nb for age, nb in rows}
@@ -344,7 +347,7 @@ def compute_deces_par_date(drkey, forecast_diff=False):
 
 def _select_deces_par_date(conn, date_range):
     rows = conn.cursor().execute(
-        '''SELECT date_deces, count(*) FROM deces WHERE date_deces BETWEEN ? AND ? GROUP BY date_deces''',
+        '''SELECT date_deces, count(*) FROM deces WHERE is_metro=true AND date_deces BETWEEN ? AND ? GROUP BY date_deces''',
         [*date_range]
     )
     return {_to_dt(date_deces): nb for date_deces, nb in rows}
@@ -474,7 +477,7 @@ def __compute_mortalite_par_annee(conn, annees):
     res = {}
     for annee in annees:
         row = cur.execute(
-            '''select count(*) from deces where date_deces between ? and ?''',
+            '''SELECT count(*) FROM deces WHERE is_metro=true AND date_deces between ? and ?''',
             (str(annee), str(annee+1))
         ).fetchone()
         res[annee] = row[0]
@@ -581,6 +584,12 @@ def _parse_sex(val):
     if val == "1": return "M"
     if val == "2": return "F"
     raise ParseSexError(f"Bad sex value: {val}")
+
+def _parse_int(val, def_val=0):
+    try:
+        return int(val)
+    except:
+        return def_val
 
 class DateParseError(ParseError):
     pass
