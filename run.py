@@ -47,13 +47,13 @@ RANGES = {
         }
         for year in range(2000, 2020+1)
     ],
-    "2000_to_2021_mars": [
+    "2000_to_2021_juin": [
         {
             "name": str(year),
             "year": year,
-            "range": _date_range(f"{year}-03-01", 365)
+            "range": _date_range(f"{year-1}-06-01", 365)
         }
-        for year in range(2000, 2020+1)
+        for year in range(2001, 2021+1)
     ]
 }
 
@@ -93,6 +93,7 @@ DECES_FILES_SRC = [
     "https://static.data.gouv.fr/resources/fichier-des-personnes-decedees/20200113-173945/deces-2019.txt",
     "https://static.data.gouv.fr/resources/fichier-des-personnes-decedees/20210112-143457/deces-2020.txt",
     "https://static.data.gouv.fr/resources/fichier-des-personnes-decedees/20210409-131502/deces-2021-t1.txt",
+    "https://static.data.gouv.fr/resources/fichier-des-personnes-decedees/20210709-174839/deces-2021-t2.txt",
 ]
 
 DATA_FILES_CONFS = [
@@ -109,6 +110,19 @@ DATA_FILES_CONFS = [
         },
         "cols":{
             "age": 2
+        }
+    }, {
+        "type": "pyramide-des-ages-2",
+        "src": "https://www.insee.fr/fr/statistiques/fichier/5007688/Pyramides-des-ages-2021.xlsx",
+        "sheet": "2021 Métro",
+        "annee": 2021,
+        "rows": {
+            "debut": 7,
+            "fin": 112
+        },
+        "cols":{
+            "age": 2,
+            "nb": 5
         }
     }
 ] + [{
@@ -190,9 +204,11 @@ def _import_data():
         for conf in DATA_FILES_CONFS:
             print(f"import {_get_conf_fname(conf)}")
             if conf["type"] == "deces":
-                _import_deces_file(conn, conf)
+               _import_deces_file(conn, conf)
             if conf["type"] == "pyramide-des-ages":
-                _import_pda_file(conn, conf)
+               _import_pda_file(conn, conf)
+            if conf["type"] == "pyramide-des-ages-2":
+                _import_pda2_file(conn, conf)
 
 
 def _import_deces_file(conn, conf):
@@ -278,6 +294,43 @@ def _import_pda_file(conn, conf):
         "age": age,
         "nb": nb
     } for (annee, age), nb in pop_by_annee_age.items()]
+    _db_bulk_insert(conn, "ages", rows)
+
+
+def _import_pda2_file(conn, conf):
+    fname = _get_conf_fname(conf)
+    path = os.path.join(HERE, "data", fname)
+    book = xlrd.open_workbook(path)
+    sheet = book.sheet_by_name(conf["sheet"])
+    rows = []
+    # loop on rows
+    # (with xlrd rows and columns start with 0)
+    col_age = conf["cols"]["age"]-1
+    col_nb = conf["cols"]["nb"]-1
+    def _parse_age(val):
+        assert val != ''
+        if type(val) is str:
+            # traitement specifique pour "100 et +"
+            res= int(re.sub("[^0-9]", "", val))
+        else:
+            res = int(val)
+        return max(0, min(100, res))
+    def _parse_int(val):
+        if type(val) is int:
+            return val
+        if (type(val) is float) or (type(val) is str and val.isdigit()):
+            return int(val)
+        return 0
+    res = {}
+    for row in range(conf["rows"]["debut"], conf["rows"]["fin"]):
+        age = _parse_age(sheet.cell(row, col_age).value)
+        nb = _parse_int(sheet.cell(row, col_nb).value)
+        res[age] = nb
+    rows = [{
+        "annee": conf["annee"],
+        "age": age,
+        "nb": nb
+    } for age, nb in res.items()]
     _db_bulk_insert(conn, "ages", rows)
 
 
