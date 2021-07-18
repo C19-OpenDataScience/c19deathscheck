@@ -46,6 +46,10 @@ On peut constater que le taux de mortalité de l'année 2020 (1ière année du C
 
 ![Taux de mortalité standardisé par âge](results/taux_mortalite_standardise_par_age_2000_to_2020.png)
 
+Même résultats avec des années comptées de juin à juin (ici jusqu'à juin 2021)
+
+![Taux de mortalité standardisé par âge (juin à juin)](results/taux_mortalite_standardise_par_age_2000_to_2021_juin.png)
+
 # Résultats: Surmortalité 2020
 
 On nous présente le covid comme ayant provoqué plus de 110k morts en France. Mais par ce chiffre nous ne savons rien de l'âge de ces morts, de leur état de santé, ni de si ils seraient morts ou non sans le covid.

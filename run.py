@@ -27,41 +27,52 @@ def _date_range(date, days):
     return (date, _add_days(date, days))
 
 RANGES = {
-    "pics_2017_2020": [
-        {"name":"Grippe (de 2017-01-01 à 2017-02-01)", "year":2017, "range":("2017-01-01", "2017-02-01")},
-        {"name":"Covid19 (de 2020-03-20 à 2020-04-20)", "year":2020, "range":("2020-03-20", "2020-04-20")},
-    ],
-    "2016_2020": [
-        {"name":str(annee), "year":annee, "range":_date_range(f"{annee}-01-01", 365)}
-        for annee in (2016, 2020)
-    ],
-    "2017_2020": [
-        {"name":str(annee), "year":annee, "range":_date_range(f"{annee}-01-01", 365)}
-        for annee in (2017, 2020)
-    ],
-    "2000_to_2020": [
-        {
-            "name": str(year),
-            "year": year,
-            "range": _date_range(f"{year}-01-01", 365)
-        }
-        for year in range(2000, 2020+1)
-    ],
-    "2000_to_2021_juin": [
-        {
-            "name": str(year),
-            "year": year,
-            "range": _date_range(f"{year-1}-06-01", 365)
-        }
-        for year in range(2001, 2021+1)
-    ]
+    "pics_2017_2020": {
+        "ranges": [
+            {"name":"Grippe (de 2017-01-01 à 2017-02-01)", "year":2017, "range":("2017-01-01", "2017-02-01")},
+            {"name":"Covid19 (de 2020-03-20 à 2020-04-20)", "year":2020, "range":("2020-03-20", "2020-04-20")},
+        ]
+    },
+    "2016_2020": {
+        "ranges": [
+            {"name":str(annee), "year":annee, "range":_date_range(f"{annee}-01-01", 365)}
+            for annee in (2016, 2020)
+        ]
+    },
+    "2017_2020": {
+        "ranges": [
+            {"name":str(annee), "year":annee, "range":_date_range(f"{annee}-01-01", 365)}
+            for annee in (2017, 2020)
+        ]
+    },
+    "2000_to_2020": {
+        "ranges": [
+            {
+                "name": str(year),
+                "year": year,
+                "range": _date_range(f"{year}-01-01", 365)
+            }
+            for year in range(2000, 2020+1)
+        ]
+    },
+    "2000_to_2021_juin": {
+        "subtitle": "juin à juin",
+        "ranges": [
+            {
+                "name": str(year),
+                "year": year,
+                "range": _date_range(f"{year-1}-06-01", 365)
+            }
+            for year in range(2001, 2021+1)
+        ]
+    }
 }
 
 
 # assert all date ranges have same duration
 for drkey, ranges in RANGES.items():
     duration = None
-    for dr in ranges:
+    for dr in ranges["ranges"]:
         start_date, end_date = dr["range"]
         dur = _to_dt(end_date) - _to_dt(start_date)
         if duration is None:
@@ -153,8 +164,10 @@ def cmd_all(do_import):
     compute_deces_par_age("pics_2017_2020")
     compute_deces_par_age("2016_2020", simulate=True)
     compute_taux_mortalite_standardise_par_age("2000_to_2020")
+    compute_taux_mortalite_standardise_par_age("2000_to_2021_juin")
     compute_mortality_forecast()
-    compute_surmortality()
+    compute_surmortality(debut=2010)
+    compute_surmortality(debut=2015)
 
 
 def _db_connect():
@@ -340,19 +353,23 @@ def _import_pda2_file(conn, conf):
 @click.argument("date_ranges", type=click.Choice(RANGES.keys()))
 def cmd_compute_taux_mortalite_par_age(date_ranges, min_age, max_age):
     print(f"compute taux_mortalite_par_age {date_ranges}")
-    compute_taux_mortalite_par_age(RANGES[date_ranges], f'taux_mortalite_par_age_{date_ranges}.png', min_age=min_age, max_age=max_age)
+    compute_taux_mortalite_par_age(date_ranges, min_age=min_age, max_age=max_age)
 
 
-def compute_taux_mortalite_par_age(ranges, ofname, min_age=0, max_age=100):
+def compute_taux_mortalite_par_age(drkey, min_age=0, max_age=100):
     plt.clf()
+    ranges = RANGES[drkey]
+    title = "[France] Taux de mortalité par âge"
+    if "subtitle" in ranges:
+        title += f' ({ranges["subtitle"]})'
     plt.title("[France] Taux de mortalité par âge")
     with _db_connect() as conn:
         age_range = list(range(min_age, max_age+1))
-        for dr in ranges:
+        for dr in ranges["ranges"]:
             taux_mortalite_par_age = _compute_taux_mortalite_par_age(conn, dr["year"], dr["range"])
             plt.plot(age_range, [taux_mortalite_par_age.get(i, 0) for i in age_range], label=dr["name"])
     plt.legend()
-    plt.savefig(os.path.join(HERE, f'results/{ofname}'))
+    plt.savefig(os.path.join(HERE, f'results/taux_mortalite_par_age_{drkey}.png'))
 
 
 def _select_pop_par_age(conn, annee):
@@ -389,7 +406,7 @@ def compute_deces_par_date(drkey, forecast_diff=False):
     plt.clf()
     plt.title("[France] Décès par date")
     with _db_connect() as conn:
-        for dr in RANGES[drkey]:
+        for dr in RANGES[drkey]["ranges"]:
             dates = _date_range_to_dates(dr["range"])
             deces_par_date = _select_deces_par_date(conn, dr["range"])
             plt.plot(range(len(dates)), [deces_par_date.get(d, 0) for d in dates], label=dr["name"])
@@ -417,7 +434,7 @@ def compute_population_par_age(drkey):
     plt.title("[France] Population par âge")
     age_range = list(range(1, 101))
     with _db_connect() as conn:
-        for dr in RANGES[drkey]:
+        for dr in RANGES[drkey]["ranges"]:
             pop_par_age = _select_pop_par_age(conn, dr["year"])
             plt.plot(age_range, [pop_par_age.get(i, 0) for i in age_range], label=dr["year"])
     plt.legend()
@@ -439,11 +456,11 @@ def compute_deces_par_age(drkey, simulate=False, cum_diff=False):
     age_range = list(range(1, 101))
     nb_deces_par_age = {}
     with _db_connect() as conn:
-        for dr in RANGES[drkey]:
+        for dr in RANGES[drkey]["ranges"]:
             name = dr["name"]
             nb_deces_par_age[name] = _select_deces_par_age(conn, dr["range"])
             plt.plot(age_range, [nb_deces_par_age[name].get(i, 0) for i in age_range], label=name)
-        range1, range2 = RANGES[drkey][0], RANGES[drkey][1]
+        range1, range2 = RANGES[drkey]["ranges"][0], RANGES[drkey]["ranges"][1]
         name1, name2 = range1["name"], range2["name"]
         if simulate:
             nb_deces_par_age["simulation"] = _simulate_deces_par_age(conn, range1["year"], range1["range"], range2["year"])
@@ -488,10 +505,14 @@ def cmd_compute_taux_mortalite_standardise_par_age(date_ranges, age_min):
 def compute_taux_mortalite_standardise_par_age(drkey, age_min=0):
     print(f"compute taux_mortalite_standardise_par_age {drkey}")
     plt.clf()
-    plt.title("[France] Taux de mortalité moyennée par âge")
+    ranges = RANGES[drkey]
+    title = "[France] Taux de mortalité standardisé par âge"
+    if "subtitle" in ranges:
+        title += f' ({ranges["subtitle"]})'
+    plt.title(title)
     moyennes_mortalite = []
     with _db_connect() as conn:
-        for dr in RANGES[drkey]:
+        for dr in ranges["ranges"]:
             annee = dr["year"]
             pop_par_age = _select_pop_par_age(conn, annee)
             deces_par_age = _select_deces_par_age(conn, (f"{annee}-01-01", f"{annee}-12-31"))
@@ -501,7 +522,7 @@ def compute_taux_mortalite_standardise_par_age(drkey, age_min=0):
                 if age >= age_min
             }
             moyennes_mortalite.append(sum(mortalite_par_age.values()) / len(mortalite_par_age))
-    plt.bar([dr["year"] for dr in RANGES[drkey]], moyennes_mortalite)
+    plt.bar([dr["year"] for dr in ranges["ranges"]], moyennes_mortalite)
     plt.legend()
     plt.savefig(os.path.join(HERE, f'results/taux_mortalite_standardise_par_age_{drkey}.png'))
 
@@ -518,7 +539,7 @@ def compute_mortalite_par_annee(drkey):
     plt.title("[France] Mortalité")
     moyennes_mortalite = []
     with _db_connect() as conn:
-        res = __compute_mortalite_par_annee(conn, [dr["year"] for dr in RANGES[drkey]])
+        res = __compute_mortalite_par_annee(conn, [dr["year"] for dr in RANGES[drkey]["ranges"]])
         plt.bar(res.keys(),res.values())
         plt.legend()
         plt.savefig(os.path.join(HERE, f'results/mortalite_par_annee_{drkey}.png'))
