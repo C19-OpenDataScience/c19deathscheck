@@ -335,22 +335,21 @@ def _import_pda2_file(conn, conf):
 
 
 @main.command("compute_taux_mortalite_par_age")
+@click.option("--min-age", default=0)
+@click.option("--max-age", default=100)
 @click.argument("date_ranges", type=click.Choice(RANGES.keys()))
-def cmd_compute_taux_mortalite_par_age(date_ranges):
-    compute_taux_mortalite_par_age(date_ranges)
-
-def compute_taux_mortalite_par_age(drkey):
-    print(f"compute taux_mortalite_par_age {drkey}")
-    _compute_taux_mortalite_par_age(RANGES[drkey], f'taux_mortalite_par_age_{drkey}.png')
+def cmd_compute_taux_mortalite_par_age(date_ranges, min_age, max_age):
+    print(f"compute taux_mortalite_par_age {date_ranges}")
+    compute_taux_mortalite_par_age(RANGES[date_ranges], f'taux_mortalite_par_age_{date_ranges}.png', min_age=min_age, max_age=max_age)
 
 
-def _compute_taux_mortalite_par_age(ranges, ofname):
+def compute_taux_mortalite_par_age(ranges, ofname, min_age=0, max_age=100):
     plt.clf()
     plt.title("[France] Taux de mortalité par âge")
     with _db_connect() as conn:
-        age_range = list(range(1, 101))
+        age_range = list(range(min_age, max_age+1))
         for dr in ranges:
-            taux_mortalite_par_age = __compute_taux_mortalite_par_age(conn, dr["year"], dr["range"])
+            taux_mortalite_par_age = _compute_taux_mortalite_par_age(conn, dr["year"], dr["range"])
             plt.plot(age_range, [taux_mortalite_par_age.get(i, 0) for i in age_range], label=dr["name"])
     plt.legend()
     plt.savefig(os.path.join(HERE, f'results/{ofname}'))
@@ -372,7 +371,7 @@ def _select_deces_par_age(conn, date_range):
     return {age: nb for age, nb in rows}
 
 
-def __compute_taux_mortalite_par_age(conn, year, date_range):
+def _compute_taux_mortalite_par_age(conn, year, date_range):
     pop_par_age = _select_pop_par_age(conn, year)
     nb_deces_par_age = _select_deces_par_age(conn, date_range)
     _div = lambda a, b: a/b if b else 0
@@ -471,7 +470,7 @@ def _cum_diff_dicts(dict_1, dict_2):
 
 
 def _simulate_deces_par_age(conn, year1, range1, year2):
-    taux_mort = __compute_taux_mortalite_par_age(conn, year1, range1)
+    taux_mort = _compute_taux_mortalite_par_age(conn, year1, range1)
     pop_par_age = _select_pop_par_age(conn, year2)
     return {
         age: taux_mort[age] * pop_par_age[age]
@@ -576,7 +575,7 @@ def compute_mortality_forecast():
 
 def _compute_taux_mortalite_par_age_moyen(conn, annee1, annee2):
     taux_mortalite_par_age_par_annee = {
-        annee: __compute_taux_mortalite_par_age(conn, annee, (f"{annee}-01-01", f"{annee}-12-31"))
+        annee: _compute_taux_mortalite_par_age(conn, annee, (f"{annee}-01-01", f"{annee}-12-31"))
         for annee in range(annee1, annee2+1)
     }
     return {
