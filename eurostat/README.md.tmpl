@@ -1,0 +1,6 @@
+{% for country_code, country_details in countries.items() %}
+## {{ country_details["name"] }}
+
+![{{country_details["name"]}}](results/{{country_code}}_deaths.png)
+
+{% endfor %}
