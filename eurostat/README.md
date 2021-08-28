@@ -1,3 +1,21 @@
+Ceci est un programme open source visant à estimer la dangerosité du covid en comparant la mortalité de l'année 2020 par rapport aux années précédentes.
+
+Ce programme est basé sur des données tirées de Eurostat.
+
+Etant donné que les populations évoluent (et dans la plupart des cas, en Europe, vieillissent), leurs mortalités évoluent également.
+Pour donc pleinement évaluer l'exceptionnel gravité de l'année 2020 en terme de mortalité, il faut reculaculer (standardiser) la mortalité de chaque année sur la base d'une population constante.
+Ici c'est l'année 2020 qui est pris comme année de référence pour ce calcul.
+
+
+## Albanie
+
+![Albanie](results/AL_deaths.png)
+
+
+## Arménie
+
+![Arménie](results/AM_deaths.png)
+
 
 ## Autriche
 
@@ -49,6 +67,11 @@
 ![Finlande](results/FI_deaths.png)
 
 
+## Géorgie
+
+![Géorgie](results/GE_deaths.png)
+
+
 ## Croatie
 
 ![Croatie](results/HR_deaths.png)
@@ -77,6 +100,11 @@
 ## Lettonie
 
 ![Lettonie](results/LV_deaths.png)
+
+
+## Moldavie
+
+![Moldavie](results/MD_deaths.png)
 
 
 ## Macédoine du Nord
@@ -114,6 +142,11 @@
 ![Serbie](results/RS_deaths.png)
 
 
+## Russie
+
+![Russie](results/RU_deaths.png)
+
+
 ## Suède
 
 ![Suède](results/SE_deaths.png)
@@ -137,4 +170,14 @@
 ## Ukraine
 
 ![Ukraine](results/UA_deaths.png)
+
+
+## Royaume-Uni
+
+![Royaume-Uni](results/UK_deaths.png)
+
+
+## Kosovo
+
+![Kosovo](results/XK_deaths.png)
 

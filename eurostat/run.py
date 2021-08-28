@@ -7,6 +7,7 @@ import click
 import gzip
 import shutil
 import sqlite3
+import collections
 import csv
 import re
 import matplotlib.pyplot as plt
@@ -42,8 +43,8 @@ FILE_CONFS = [
 ]
 
 COUNTRY_CODES = {
-    # "AL":"Albanie",   # Missing data
-    #"AM": "Arménie",   # Missing data
+    "AL":"Albanie",   # Missing data
+    "AM": "Arménie",   # Missing data
     "AT": "Autriche",
     "AZ": "Azerbaïdjan",
     "BG": "Bulgaria",
@@ -54,14 +55,14 @@ COUNTRY_CODES = {
     "ES": "Espagne",
     "FR": "France",
     "FI": "Finlande",
-    #"GE": "Géorgie",   # Missing data
+    "GE": "Géorgie",   # Missing data
     "HR": "Croatie",
     "HU": "Hongrie",
     "IE": "Irlande",
     "IT": "Italie",
     "LT": "Lituanie",
     "LV": "Lettonie",
-    #"MD": "Moldavie",   # Missing data
+    "MD": "Moldavie",   # Missing data
     "MK": "Macédoine du Nord",
     "NL": "Pays-Bas",
     "NO": "Norvège",
@@ -69,17 +70,19 @@ COUNTRY_CODES = {
     "PT": "Portugal",
     "RO": "Roumanie",
     "RS": "Serbie",
-    #"RU": "Russie",   # Missing data
+    "RU": "Russie",   # Missing data
     "SE": "Suède",
     "SI": "Slovénie",
     "SK": "Slovaquie",
     "TR": "Turquie",
-    "UA": "Ukraine"
-    #"UK": "Royaume-Uni",  # no 2020 population !
-    #"XK": "Kosovo"   # Missing data
+    "UA": "Ukraine",
+    "UK": "Royaume-Uni",  # no 2020 population !
+    "XK": "Kosovo"   # Missing data
 }
 
-YEARS = range(2010, 2020+1)
+AGE_MAX = 90  # after 90, data are less significant, and numbers should be summed together
+
+#YEARS = range(2010, 2020+1)
 
 
 @click.group()
@@ -133,21 +136,21 @@ def import_data():
         _import_deaths_age_sex(conn)
 
 def _import_population(conn):
-    db_rows = []
+    vals = collections.defaultdict(int)
     with open(os.path.join(DATA_DIR, "population_age_sex.tsv"), newline='') as csvf:
         for row in csv.DictReader(csvf, delimiter='\t'):
             ind, age, sex, geo = row["unit,age,sex,geo\\time"].split(",")
             age = _parse_age(age)
             if ind == "NR" and sex != 'T' and age:
                 for year in range(1960, 2021+1):
-                    db_rows.append({
-                        "geo": geo,
-                        "year": year,
-                        "sex": sex,
-                        "age": age,
-                        "value": _parse_int(row[f"{year} "])
-                    })
-    _db_bulk_insert(conn, "population_age_sex", db_rows)
+                    vals[(geo, year, sex, age)] += _parse_int(row[f"{year} "])
+    _db_bulk_insert(conn, "population_age_sex", [{
+        "geo": geo,
+        "year": year,
+        "sex": sex,
+        "age": age,
+        "value": val
+    } for (geo, year, sex, age), val in vals.items()])
 
 # def _import_population(conn):
 #     db_rows = []
@@ -163,21 +166,21 @@ def _import_population(conn):
 #     _db_bulk_insert(conn, "population", db_rows)
 
 def _import_deaths_age_sex(conn):
-    db_rows = []
+    vals = collections.defaultdict(int)
     with open(os.path.join(DATA_DIR, "deaths_age_sex.tsv"), newline='') as csvf:
         for row in csv.DictReader(csvf, delimiter='\t'):
             ind, sex, age, geo = row["unit,sex,age,geo\\time"].split(",")
             age = _parse_age(age)
             if ind == "NR" and sex != 'T' and age:
                 for year in range(1960, 2019+1):
-                    db_rows.append({
-                        "geo": geo,
-                        "year": year,
-                        "sex": sex,
-                        "age": age,
-                        "value": _parse_int(row[f"{year} "])
-                    })
-    _db_bulk_insert(conn, "deaths_age_sex", db_rows)
+                    vals[(geo, year, sex, age)] += _parse_int(row[f"{year} "])
+    _db_bulk_insert(conn, "deaths_age_sex", [{
+        "geo": geo,
+        "year": year,
+        "sex": sex,
+        "age": age,
+        "value": val
+    } for (geo, year, sex, age), val in vals.items()])
 
 def _import_deaths(conn):
     db_rows = []
@@ -227,27 +230,32 @@ def _parse_int(val):
     return int(val)
 
 def _parse_age(val):
-    if val == 'Y_OPEN': return 100
+    if val == 'Y_OPEN': return AGE_MAX
     if val == 'Y_LT1': return 0
     val = re.sub("[^0-9]", "", val)
     if not val: return None
-    return int(val)
+    return min(int(val), AGE_MAX)
 
 
 @main.command("plot_deaths")
 @click.option("--start")
-def cmd_plot_deaths(start):
-    plot_deaths(start)
+@click.option("--country")
+def cmd_plot_deaths(*args, **kwargs):
+    plot_deaths(*args, **kwargs)
 
-def plot_deaths(start=None):
+def plot_deaths(start=None, country=None):
+    country_filter = country
     if not start: start = 1980
-    ages = range(0, 100+1)
+    ages = range(0, AGE_MAX+1)
     years_2019 = range(start, 2019+1)
     years_2020 = range(start, 2020+1)
     with db_connect() as conn:
+        nb_country_ok = 0
         for code, country in COUNTRY_CODES.items():
+            if country_filter and code != country_filter:
+                continue
             try:
-                print(f"Plot deaths of {code}")
+                print(f"Plot deaths of {code} ({country})")
                 rows = conn.execute((
                     "SELECT year, age, SUM(value) "
                     "FROM population_age_sex "
@@ -258,6 +266,12 @@ def plot_deaths(start=None):
                 pops = {}
                 for year, age, value in rows:
                     pops.setdefault(year, {})[age] = value or 0
+                # if a year have too much holes: clean it (it will cancel estimation)
+                for year in years_2020:
+                    nb_nulls = sum(1 for a in ages if pops[year].get(a,0) == 0)
+                    if nb_nulls >= 5:
+                        for age in ages:
+                            pops[year][age] = 0
                 rows = conn.execute((
                     "SELECT year, age, SUM(value) "
                     "FROM deaths_age_sex "
@@ -292,36 +306,42 @@ def plot_deaths(start=None):
                     }
                     for year in years_2019
                 }
-                # mean_death_rates = {
-                #     age: mean(death_rates[year][age] for year in years_2019)
-                #     for age in ages
-                # }
-                # expected_deaths = [
-                #     sum(int(mean_death_rates.get(age,0)*pops[year].get(age,0)) for age in ages)
-                #     for year in years_2020
-                # ]
                 real_deaths = [
                     total_deaths[year] or None
                     for year in years_2020
                 ]
                 simulated_deaths = [
-                    sum(int( death_rates[year].get(age,0) * pops[2020].get(age,0) ) for age in ages) * deaths_correction[year] or None
+                    sum(
+                        int( death_rates[year].get(age,0) * pops[2020].get(age,0) )
+                        for age in ages
+                    ) * deaths_correction[year] or None
                     for year in years_2019
                 ]
+                if not total_deaths.get(2020):
+                    print("  WARNING: unsufficient data (no 2020 real deaths)")
+                    continue
+                if len([d for d in real_deaths if d is not None]) < 10:
+                    print("  WARNING: unsufficient data (less than 10 years for real deaths)")
+                    continue
+                if len([d for d in simulated_deaths if d is not None]) < 10:
+                    print("  WARNING: unsufficient data (less than 10 years for simulated deaths)")
+                    continue
                 nb_xticks, nb_years = 5, len(years_2020)
                 xticks_period = math.floor(nb_years/nb_xticks)
                 _plot(f"[{country}] Mortalite",
                     years_2020,
                     {
-                        "observed deaths": real_deaths,
-                        "deaths with constant population": simulated_deaths+[total_deaths[2020]]
+                        "Mortalité réelle": real_deaths,
+                        f"Mortalité standardisée à population constante (2020)": simulated_deaths+[total_deaths[2020]]
                     },
                     f'{code}_deaths.png',
                     axis=[None, None, 0, None],
                     xticks=[y if (2020-y) % xticks_period == 0 else None for y in years_2020]
                 )
+                nb_country_ok += 1
             except Exception:
                 traceback.print_exc()
+        print(f"Nb countries successfully computed: {nb_country_ok}/{len(COUNTRY_CODES)}")
 
 
             # for year in range(start, 2019+1):
