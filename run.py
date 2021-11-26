@@ -163,8 +163,8 @@ def cmd_all(do_import):
     compute_population_par_age("pics_2017_2020")
     compute_deces_par_age("pics_2017_2020")
     compute_deces_par_age("2016_2020", simulate=True)
-    compute_taux_mortalite_standardise_par_age("2000_to_2020")
-    compute_taux_mortalite_standardise_par_age("2000_to_2021_juin")
+    compute_mortalite_standardise("2000_to_2020")
+    compute_mortalite_standardise("2000_to_2021_juin")
     compute_mortality_forecast()
     compute_surmortality(debut=2010)
     compute_surmortality(debut=2015)
@@ -495,36 +495,37 @@ def _simulate_deces_par_age(conn, year1, range1, year2):
     }
 
 
-@main.command("compute_taux_mortalite_standardise_par_age")
+@main.command("compute_mortalite_standardise")
 @click.argument("date_ranges", type=click.Choice(RANGES.keys()))
 @click.option("--age-min", type=int, default=0)
-def cmd_compute_taux_mortalite_standardise_par_age(date_ranges, age_min):
-    compute_taux_mortalite_standardise_par_age(date_ranges, age_min=age_min)
+def cmd_compute_mortalite_standardise(date_ranges, age_min):
+    compute_mortalite_standardise(date_ranges, age_min=age_min)
 
 
-def compute_taux_mortalite_standardise_par_age(drkey, age_min=0):
-    print(f"compute taux_mortalite_standardise_par_age {drkey}")
+def compute_mortalite_standardise(drkey, age_min=0):
+    print(f"compute mortalite_standardise {drkey}")
     plt.clf()
     ranges = RANGES[drkey]
-    title = "[France] Taux de mortalité standardisé par âge"
+    title = "[France] Mortalité standardisé"
     if "subtitle" in ranges:
         title += f' ({ranges["subtitle"]})'
     plt.title(title)
-    moyennes_mortalite = []
+    mortalite_standardise_par_annee = []
     with _db_connect() as conn:
+        last_pop_par_age = _select_pop_par_age(conn, ranges["ranges"][-1]["year"])
         for dr in ranges["ranges"]:
             annee = dr["year"]
             pop_par_age = _select_pop_par_age(conn, annee)
-            deces_par_age = _select_deces_par_age(conn, (f"{annee}-01-01", f"{annee}-12-31"))
-            mortalite_par_age = {
-                age: deces_par_age.get(age, 0) / pop if pop > 0 else 0
-                for age, pop in pop_par_age.items()
+            taux_mortalite_par_age = _compute_taux_mortalite_par_age(conn, annee, dr["range"])
+            taux_mortalite_standardise = {
+                age: last_pop_par_age.get(age, 0) * taux_mortalite_par_age.get(age, 0)
+                for age, pop in last_pop_par_age.items()
                 if age >= age_min
             }
-            moyennes_mortalite.append(sum(mortalite_par_age.values()) / len(mortalite_par_age))
-    plt.bar([dr["year"] for dr in ranges["ranges"]], moyennes_mortalite)
+            mortalite_standardise_par_annee.append(sum(taux_mortalite_standardise.values()))
+    plt.bar([dr["year"] for dr in ranges["ranges"]], mortalite_standardise_par_annee)
     plt.legend()
-    plt.savefig(os.path.join(HERE, f'results/taux_mortalite_standardise_par_age_{drkey}.png'))
+    plt.savefig(os.path.join(HERE, f'results/mortalite_standardise_{drkey}.png'))
 
 
 @main.command("compute_mortalite_par_annee")

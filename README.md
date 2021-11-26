@@ -40,15 +40,15 @@ Ces différences de population peuvent s'expliquer par:
 
 # Résultats: Taux de mortalité standardisés annuels de 2000 à 2020
 
-On peut constater que le taux de mortalité de l'année 2020 (1ière année du Covid19) est certes un peu plus élevée que l'année précédente (2019), mais reste tout à fait dans les normes des taux de mortalité de ces 20 dernières années. Ce qui suggère que le Covid19 ne constitue aucunement un épisode épidémique exceptionnel.
+On peut constater que la mortalité de l'année 2020 (1ière année du Covid19) est certes un peu plus élevée que l'année précédente (2019), mais reste tout à fait dans les normes des taux de mortalité de ces 20 dernières années. Ce qui suggère que le Covid19 ne constitue aucunement un épisode épidémique exceptionnel.
 
-(Ici, le taux de mortalité est standardisé par âge, ce qui permet de ne pas perturber les résultats comparatifs par le viellissement de la population).
+(Ici, la mortalité est standardisé par âge, ce qui permet de ne pas perturber les résultats comparatifs par le viellissement de la population).
 
-![Taux de mortalité standardisé par âge](results/taux_mortalite_standardise_par_age_2000_to_2020.png)
+![Mortalité standardisé](results/mortalite_standardise_2000_to_2020.png)
 
 Même résultats avec des années comptées de juin à juin (ici jusqu'à juin 2021)
 
-![Taux de mortalité standardisé par âge (juin à juin)](results/taux_mortalite_standardise_par_age_2000_to_2021_juin.png)
+![Mortalité standardisé (juin à juin)](results/mortalite_standardise_2000_to_2021_juin.png)
 
 # Résultats: Surmortalité 2020
 
