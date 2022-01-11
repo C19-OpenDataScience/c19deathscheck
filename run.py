@@ -45,14 +45,14 @@ RANGES = {
             for annee in (2017, 2020)
         ]
     },
-    "2000_to_2020": {
+    "2000_to_2021": {
         "ranges": [
             {
                 "name": str(year),
                 "year": year,
                 "range": _date_range(f"{year}-01-01", 365)
             }
-            for year in range(2000, 2020+1)
+            for year in range(2000, 2021+1)
         ]
     },
     "2000_to_2021_juin": {
@@ -105,6 +105,10 @@ DECES_FILES_SRC = [
     "https://static.data.gouv.fr/resources/fichier-des-personnes-decedees/20210112-143457/deces-2020.txt",
     "https://static.data.gouv.fr/resources/fichier-des-personnes-decedees/20210409-131502/deces-2021-t1.txt",
     "https://static.data.gouv.fr/resources/fichier-des-personnes-decedees/20210709-174839/deces-2021-t2.txt",
+    "https://static.data.gouv.fr/resources/fichier-des-personnes-decedees/20211012-093424/deces-2021-t3.txt",
+    "https://static.data.gouv.fr/resources/fichier-des-personnes-decedees/20211118-093353/deces-2021-m10.txt",
+    "https://static.data.gouv.fr/resources/fichier-des-personnes-decedees/20211215-093836/deces-2021-m11.txt",
+    "https://static.data.gouv.fr/resources/fichier-des-personnes-decedees/20220106-161749/deces-2021-m12.txt",
 ]
 
 DATA_FILES_CONFS = [
@@ -146,6 +150,17 @@ def _get_conf_fname(conf):
     return conf.get("name") or os.path.basename(conf["src"])
 
 
+CLAGES = {
+    "0-39": (0, 39),
+    "40-49": (40, 49),
+    "50-59": (50, 59),
+    "60-69": (60, 69),
+    "70-79": (70, 79),
+    "80-89": (70, 79),
+    "90+": (90, 1000)
+}
+
+
 @click.group()
 def main():
     pass
@@ -158,16 +173,17 @@ def cmd_all(do_import):
         _download_data()
         _import_data()
     compute_taux_mortalite_par_age("pics_2017_2020")
-    compute_taux_mortalite_par_age("2000_to_2020")
+    compute_taux_mortalite_par_age("2000_to_2021")
     compute_deces_par_date("pics_2017_2020")
     compute_population_par_age("pics_2017_2020")
     compute_deces_par_age("pics_2017_2020")
     compute_deces_par_age("2016_2020", simulate=True)
-    compute_mortalite_standardise("2000_to_2020")
+    compute_mortalite_standardise("2000_to_2021")
     compute_mortalite_standardise("2000_to_2021_juin")
     compute_mortality_forecast()
     compute_surmortality(debut=2010)
     compute_surmortality(debut=2015)
+    compute_standard_mortality_by_date_clage(debut=2010)
 
 
 def _db_connect():
@@ -644,6 +660,65 @@ def compute_surmortality(debut=2010):
     plt.hlines(surmortalite_stdev, debut, FIN, colors='r')
     plt.legend()
     plt.savefig(os.path.join(HERE, f'results/surmortalite_{debut}.png'))
+
+
+@main.command("compute_standard_mortality_by_date_clage")
+@click.option("--debut", default=2010)
+def cmd_compute_standard_mortality_by_date_clage(debut):
+    compute_standard_mortality_by_date_clage(debut=debut)
+
+def compute_standard_mortality_by_date_clage(debut=2010):
+    print("compute_standard_mortality_by_date_clage")
+    last_year = 2021
+    all_dates = []
+    deces_standardise_par_clage = { clage:{} for clage in CLAGES }
+    with _db_connect() as conn:
+        last_pop_par_age = _select_pop_par_age(conn, last_year)
+        for year in range(debut, last_year+1):
+            pop_par_age = _select_pop_par_age(conn, year)
+            deces_par_date_age = {
+                (date, age): val
+                for date, age, val in conn.execute(
+                    '''SELECT date_deces, age, count(*) FROM deces WHERE is_metro=true AND date_deces between ? and ? GROUP BY date_deces, age''',
+                    (str(year), str(year+1))
+                )
+            }
+            dates = sorted(set(d for (d, _) in deces_par_date_age.keys()))
+            deces_standard_par_date_age = {
+                (date, age): val * last_pop_par_age.get(age, 0) / pop_par_age.get(age, 1)
+                for (date, age), val in deces_par_date_age.items()
+            }
+            deces_standard_par_date_clage = {
+                (date, clage): sum(
+                    deces_standard_par_date_age.get((date, age),0)
+                    for age in range(age_range[0], age_range[1]+1)
+                )
+                for date in dates
+                for clage, age_range in CLAGES.items()
+            }
+            for clage in CLAGES:
+                for date in dates:
+                    deces_standardise_par_clage[clage][date] = deces_standard_par_date_clage[(date, clage)]
+            all_dates += dates
+
+    plt.clf()
+    plt.title("[France] Mortalité standardisée")
+    plt.stackplot(
+        all_dates,
+        *[
+            [ deces_standardise_par_clage[clage].get(date,0) for date in all_dates ]
+            for clage in CLAGES.keys()
+        ],
+        labels=CLAGES.keys()
+    )
+    plt.xticks([
+        d
+        for d in all_dates
+        if d.endswith("01-01")
+    ], rotation=20, ha='right')
+    plt.legend(ncol=4)
+    plt.savefig(os.path.join(HERE, f'results/standard_mortality_by_date_clage_{debut}.png'))
+
 
 
 # parsing
