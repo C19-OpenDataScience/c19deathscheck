@@ -216,8 +216,7 @@ def _download_data_file(conf):
     fname = _get_conf_fname(conf)
     fpath = os.path.join(HERE, "data", fname)
     if not os.path.exists(fpath):
-        print(f'Download {fname}... ', end='')
-        sys.stdout.flush()
+        print(f'Download {fname}... ', end='', flush=True)
         urllib.request.urlretrieve(conf["src"], fpath)
         print(f'DONE')
 
@@ -378,7 +377,8 @@ def compute_taux_mortalite_par_age(drkey, min_age=0, max_age=100):
     title = "[France] Taux de mortalité par âge"
     if "subtitle" in ranges:
         title += f' ({ranges["subtitle"]})'
-    plt.title("[France] Taux de mortalité par âge")
+    plt.suptitle("[France] Taux de mortalité par âge")
+    plt.title("Source: INSEE - registre des décès", fontsize=10)
     with _db_connect() as conn:
         age_range = list(range(min_age, max_age+1))
         for dr in ranges["ranges"]:
@@ -420,7 +420,8 @@ def cmd_compute_deces_par_date(date_ranges):
 def compute_deces_par_date(drkey, forecast_diff=False):
     print(f"compute deces_par_date {drkey}")
     plt.clf()
-    plt.title("[France] Décès par date")
+    plt.suptitle("[France] Décès par date")
+    plt.title("Source: INSEE - registre des décès", fontsize=10)
     with _db_connect() as conn:
         for dr in RANGES[drkey]["ranges"]:
             dates = _date_range_to_dates(dr["range"])
@@ -468,7 +469,8 @@ def cmd_compute_deces_par_age(date_ranges, simulate, cum_diff):
 def compute_deces_par_age(drkey, simulate=False, cum_diff=False):
     print(f"compute deces_par_age {drkey}")
     plt.clf()
-    plt.title("[France] Décès par âge")
+    plt.suptitle("[France] Décès par âge")
+    plt.title("Source: INSEE - registre des décès", fontsize=10)
     age_range = list(range(1, 101))
     nb_deces_par_age = {}
     with _db_connect() as conn:
@@ -525,7 +527,8 @@ def compute_mortalite_standardise(drkey, age_min=0):
     title = "[France] Mortalité standardisé"
     if "subtitle" in ranges:
         title += f' ({ranges["subtitle"]})'
-    plt.title(title)
+    plt.suptitle(title)
+    plt.title("Source: INSEE - registre des décès", fontsize=10)
     mortalite_standardise_par_annee = []
     with _db_connect() as conn:
         last_pop_par_age = _select_pop_par_age(conn, ranges["ranges"][-1]["year"])
@@ -546,14 +549,15 @@ def compute_mortalite_standardise(drkey, age_min=0):
 
 @main.command("compute_mortalite_par_annee")
 @click.argument("date_range", type=click.Choice(RANGES.keys()))
-def cmd_compute_mortalite_par_annee(date_ranges):
-    compute_mortalite_par_annee(date_ranges)
+def cmd_compute_mortalite_par_annee(date_range):
+    compute_mortalite_par_annee(date_range)
 
 
 def compute_mortalite_par_annee(drkey):
     print(f"compute mortalite_par_annee {drkey}")
     plt.clf()
-    plt.title("[France] Mortalité")
+    plt.suptitle("[France] Mortalité")
+    plt.title("Source: INSEE - registre des décès", fontsize=10)
     moyennes_mortalite = []
     with _db_connect() as conn:
         res = __compute_mortalite_par_annee(conn, [dr["year"] for dr in RANGES[drkey]["ranges"]])
@@ -664,10 +668,12 @@ def compute_surmortality(debut=2010):
 
 @main.command("compute_standard_mortality_by_date_clage")
 @click.option("--debut", default=2010)
-def cmd_compute_standard_mortality_by_date_clage(debut):
-    compute_standard_mortality_by_date_clage(debut=debut)
+@click.option("--dep")
+@click.option("--by-month", is_flag=True)
+def cmd_compute_standard_mortality_by_date_clage(debut, dep, by_month):
+    compute_standard_mortality_by_date_clage(debut=debut, dep=dep, by_month=by_month)
 
-def compute_standard_mortality_by_date_clage(debut=2010):
+def compute_standard_mortality_by_date_clage(debut=2010, dep=None, by_month=None):
     print("compute_standard_mortality_by_date_clage")
     last_year = 2021
     all_dates = []
@@ -676,12 +682,12 @@ def compute_standard_mortality_by_date_clage(debut=2010):
         last_pop_par_age = _select_pop_par_age(conn, last_year)
         for year in range(debut, last_year+1):
             pop_par_age = _select_pop_par_age(conn, year)
+            req = "SELECT date_deces, age, count(*) FROM deces WHERE is_metro=true AND date_deces between ? and ?"
+            if dep: req += f" AND lieu_deces LIKE '{dep}%'"
+            req += " GROUP BY date_deces, age"
             deces_par_date_age = {
                 (date, age): val
-                for date, age, val in conn.execute(
-                    '''SELECT date_deces, age, count(*) FROM deces WHERE is_metro=true AND date_deces between ? and ? GROUP BY date_deces, age''',
-                    (str(year), str(year+1))
-                )
+                for date, age, val in conn.execute(req, (str(year), str(year+1)))
             }
             dates = sorted(set(d for (d, _) in deces_par_date_age.keys()))
             deces_standard_par_date_age = {
@@ -696,13 +702,31 @@ def compute_standard_mortality_by_date_clage(debut=2010):
                 for date in dates
                 for clage, age_range in CLAGES.items()
             }
+            if by_month:
+                _dates, _deces_standard_par_date_clage = [], {}
+                for (date, clage), val in deces_standard_par_date_clage.items():
+                    month = date[:7]
+                    if not _dates or _dates[-1] != month: _dates.append(month)
+                    if (month, clage) not in _deces_standard_par_date_clage: _deces_standard_par_date_clage[(month, clage)] = []
+                    _deces_standard_par_date_clage[(month, clage)].append(val)
+                for k, vs in _deces_standard_par_date_clage.items():
+                    _deces_standard_par_date_clage[k] = sum(vs)
+                dates = _dates
+                deces_standard_par_date_clage = _deces_standard_par_date_clage
             for clage in CLAGES:
                 for date in dates:
                     deces_standardise_par_clage[clage][date] = deces_standard_par_date_clage[(date, clage)]
             all_dates += dates
+    
+    for d, v in zip(all_dates, [ sum(deces_standardise_par_clage[clage].get(date,0) for clage in CLAGES.keys()) for date in all_dates]):
+        print(d, v)
 
     plt.clf()
-    plt.title("[France] Mortalité standardisée")
+    suptitle = ["[France] Mortalité standardisée"]
+    if dep: suptitle.append(f"Département: {dep}")
+    plt.suptitle(", ".join(suptitle))
+    plt.title("Source: INSEE - registre des décès", fontsize=10)
+
     plt.stackplot(
         all_dates,
         *[
@@ -714,10 +738,13 @@ def compute_standard_mortality_by_date_clage(debut=2010):
     plt.xticks([
         d
         for d in all_dates
-        if d.endswith("01-01")
+        if (not by_month and d.endswith("-01-01")) or (by_month and d.endswith("-01"))
     ], rotation=20, ha='right')
     plt.legend(ncol=4)
-    plt.savefig(os.path.join(HERE, f'results/standard_mortality_by_date_clage_{debut}.png'))
+    fpath = [f'results/standard_mortality_by_date_clage_{debut}']
+    if dep: fpath.append(dep)
+    if by_month: fpath.append("by_month")
+    plt.savefig(os.path.join(HERE, '_'.join(fpath)+'.png'))
 
 
 
